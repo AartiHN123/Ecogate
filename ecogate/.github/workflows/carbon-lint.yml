@@ -1,0 +1,33 @@
+name: CarbonLint PR Analysis
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - '**.js'
+      - '**.ts'
+      - '**.jsx'
+      - '**.tsx'
+      - '**.py'
+
+jobs:
+  carbon-lint:
+    name: 🌿 CarbonLint
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Need full history for git diff
+
+      - name: Run CarbonLint
+        uses: ./ecogate/carbon-lint
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          github_token:   ${{ secrets.GITHUB_TOKEN }}
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_BASE_REF: ${{ github.base_ref }}

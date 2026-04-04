@@ -1,0 +1,21 @@
+name: CarbonLint — AI Efficiency Analysis
+description: >
+  Scans pull request code changes for wasteful LLM usage patterns and
+  posts a Green Score (A–F) with line-by-line suggestions.
+
+inputs:
+  openai_api_key:
+    description: OpenAI API key for the analysis LLM call
+    required: true
+  model:
+    description: Model to use for analysis (should be a small model!)
+    required: false
+    default: gpt-4o-mini
+  github_token:
+    description: GitHub token for posting PR comments
+    required: true
+    default: ${{ github.token }}
+
+runs:
+  using: node20
+  main: lint.js

@@ -1,0 +1,17 @@
+// Static copy of server/models.json for use in the React dashboard
+// Update this if you add new models to server/models.json
+
+const MODELS = {
+  "gpt-4o-mini":       { tier: "small",  carbon_per_1k_tokens_g: 0.02,  provider: "openai",     displayName: "GPT-4o mini" },
+  "gpt-4o":            { tier: "medium", carbon_per_1k_tokens_g: 0.15,  provider: "openai",     displayName: "GPT-4o" },
+  "gpt-4":             { tier: "large",  carbon_per_1k_tokens_g: 0.45,  provider: "openai",     displayName: "GPT-4" },
+  "gpt-4-turbo":       { tier: "large",  carbon_per_1k_tokens_g: 0.45,  provider: "openai",     displayName: "GPT-4 Turbo" },
+  "claude-haiku-3-5":  { tier: "small",  carbon_per_1k_tokens_g: 0.02,  provider: "anthropic",  displayName: "Claude Haiku 3.5" },
+  "claude-haiku-3":    { tier: "small",  carbon_per_1k_tokens_g: 0.02,  provider: "anthropic",  displayName: "Claude Haiku 3" },
+  "claude-sonnet-4-5": { tier: "medium", carbon_per_1k_tokens_g: 0.15,  provider: "anthropic",  displayName: "Claude Sonnet 4.5" },
+  "claude-sonnet-3-5": { tier: "medium", carbon_per_1k_tokens_g: 0.15,  provider: "anthropic",  displayName: "Claude Sonnet 3.5" },
+  "claude-opus-4-5":   { tier: "large",  carbon_per_1k_tokens_g: 0.45,  provider: "anthropic",  displayName: "Claude Opus 4.5" },
+  "claude-opus-3":     { tier: "large",  carbon_per_1k_tokens_g: 0.45,  provider: "anthropic",  displayName: "Claude Opus 3" },
+}
+
+export default MODELS
