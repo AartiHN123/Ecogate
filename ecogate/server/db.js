@@ -1,0 +1,153 @@
+'use strict';
+
+const path = require('path');
+const Database = require('better-sqlite3');
+
+// Database lives next to this file — ecogate/server/ecogate.db
+const DB_PATH = path.join(__dirname, 'ecogate.db');
+
+const db = new Database(DB_PATH);
+
+// Improve write performance — safe for single-process use
+db.pragma('journal_mode = WAL');
+
+// ─── Schema ────────────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS requests (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp         TEXT    NOT NULL,
+    provider          TEXT    NOT NULL,
+    model             TEXT    NOT NULL,
+    tokens_in         INTEGER NOT NULL DEFAULT 0,
+    tokens_out        INTEGER NOT NULL DEFAULT 0,
+    latency_ms        INTEGER NOT NULL DEFAULT 0,
+    complexity_score  INTEGER,
+    complexity_source TEXT,
+    routing_tier      TEXT,
+    was_routed        INTEGER NOT NULL DEFAULT 0,
+    carbon_g          REAL    NOT NULL DEFAULT 0,
+    baseline_carbon_g REAL    NOT NULL DEFAULT 0,
+    savings_g         REAL    NOT NULL DEFAULT 0
+  );
+`);
+
+// Migrate existing DB: add new columns if they don't exist (safe no-op if present)
+const existingCols = db.pragma('table_info(requests)').map((c) => c.name);
+const newCols = [
+  ['complexity_score',  'INTEGER'],
+  ['complexity_source', 'TEXT'],
+  ['routing_tier',      'TEXT'],
+  ['was_routed',        'INTEGER NOT NULL DEFAULT 0'],
+  ['carbon_g',          'REAL    NOT NULL DEFAULT 0'],
+  ['baseline_carbon_g', 'REAL    NOT NULL DEFAULT 0'],
+  ['savings_g',         'REAL    NOT NULL DEFAULT 0'],
+];
+for (const [col, type] of newCols) {
+  if (!existingCols.includes(col)) {
+    db.exec(`ALTER TABLE requests ADD COLUMN ${col} ${type}`);
+  }
+}
+
+// ─── Prepared statements ───────────────────────────────────────────────────
+const insertRequest = db.prepare(`
+  INSERT INTO requests (
+    timestamp, provider, model,
+    tokens_in, tokens_out, latency_ms,
+    complexity_score, complexity_source, routing_tier, was_routed,
+    carbon_g, baseline_carbon_g, savings_g
+  ) VALUES (
+    @timestamp, @provider, @model,
+    @tokens_in, @tokens_out, @latency_ms,
+    @complexity_score, @complexity_source, @routing_tier, @was_routed,
+    @carbon_g, @baseline_carbon_g, @savings_g
+  )
+`);
+
+const selectLogs = db.prepare(`
+  SELECT * FROM requests
+  ORDER BY id DESC
+  LIMIT @limit
+`);
+
+const selectStats = db.prepare(`
+  SELECT
+    provider,
+    routing_tier,
+    COUNT(*)              AS count,
+    SUM(tokens_in)        AS total_tokens_in,
+    SUM(tokens_out)       AS total_tokens_out,
+    AVG(latency_ms)       AS avg_latency_ms,
+    SUM(carbon_g)         AS carbon_g,
+    SUM(baseline_carbon_g) AS baseline_carbon_g,
+    SUM(savings_g)        AS savings_g
+  FROM requests
+  GROUP BY provider, routing_tier
+  ORDER BY count DESC
+`);
+
+const selectTotals = db.prepare(`
+  SELECT
+    COUNT(*)              AS total_requests,
+    SUM(tokens_in)        AS total_tokens_in,
+    SUM(tokens_out)       AS total_tokens_out,
+    AVG(latency_ms)       AS avg_latency_ms,
+    SUM(carbon_g)         AS total_carbon_g,
+    SUM(baseline_carbon_g) AS total_baseline_carbon_g,
+    SUM(savings_g)        AS total_savings_g
+  FROM requests
+`);
+
+// ─── Exported helpers ──────────────────────────────────────────────────────
+
+/**
+ * Log one completed request.
+ * @param {{
+ *   provider, model, tokens_in, tokens_out, latency_ms,
+ *   complexity_score, complexity_source, routing_tier, was_routed,
+ *   carbon_g, baseline_carbon_g, savings_g
+ * }} row
+ */
+function logRequest(row) {
+  insertRequest.run({
+    timestamp:         new Date().toISOString(),
+    provider:          row.provider,
+    model:             row.model,
+    tokens_in:         row.tokens_in          || 0,
+    tokens_out:        row.tokens_out         || 0,
+    latency_ms:        row.latency_ms         || 0,
+    complexity_score:  row.complexity_score   ?? null,
+    complexity_source: row.complexity_source  ?? null,
+    routing_tier:      row.routing_tier       ?? null,
+    was_routed:        row.was_routed         ?? 0,
+    carbon_g:          row.carbon_g           || 0,
+    baseline_carbon_g: row.baseline_carbon_g  || 0,
+    savings_g:         row.savings_g          || 0,
+  });
+}
+
+/**
+ * Return the N most recent requests (default 100).
+ */
+function getLogs(limit = 100) {
+  return selectLogs.all({ limit });
+}
+
+/**
+ * Return per-provider/tier aggregates + overall totals.
+ */
+function getStats() {
+  const totals    = selectTotals.get();
+  const breakdown = selectStats.all();
+
+  // Compute savings_pct at the totals level
+  const savings_pct = totals.total_baseline_carbon_g > 0
+    ? Math.round((totals.total_savings_g / totals.total_baseline_carbon_g) * 100)
+    : 0;
+
+  return {
+    totals:    { ...totals, savings_pct },
+    breakdown,
+  };
+}
+
+module.exports = { logRequest, getLogs, getStats };

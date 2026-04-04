@@ -1,0 +1,324 @@
+{
+  "_readme": "Single source of truth for EcoGate providers and models. Keep this in sync with providers.js and router.js. Used by future code as reference.",
+
+  "providers": {
+
+    "openai": {
+      "id": "openai",
+      "name": "OpenAI",
+      "baseURL": "https://api.openai.com/v1",
+      "envKey": "OPENAI_API_KEY",
+      "website": "https://platform.openai.com",
+      "extraHeaders": {},
+
+      "tiers": {
+        "small":  "gpt-4o-mini",
+        "medium": "gpt-4o",
+        "large":  "gpt-4-turbo"
+      },
+
+      "classifierModel": "gpt-4o-mini",
+
+      "models": {
+        "gpt-4o-mini": {
+          "tier": "small",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Default classifier model. Best cost/speed for routing."
+        },
+        "gpt-4o": {
+          "tier": "medium",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.15,
+          "notes": "Balanced capability and cost."
+        },
+        "gpt-4-turbo": {
+          "tier": "large",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.45,
+          "notes": "Highest capability baseline."
+        },
+        "gpt-3.5-turbo": {
+          "tier": "small",
+          "contextWindow": 16385,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Legacy small model."
+        }
+      }
+    },
+
+    "anthropic": {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "baseURL": "https://api.anthropic.com/v1",
+      "envKey": "ANTHROPIC_API_KEY",
+      "website": "https://console.anthropic.com",
+      "extraHeaders": { "anthropic-version": "2023-06-01" },
+
+      "tiers": {
+        "small":  "claude-3-haiku-20240307",
+        "medium": "claude-3-5-sonnet-20241022",
+        "large":  "claude-3-opus-20240229"
+      },
+
+      "classifierModel": "claude-3-haiku-20240307",
+
+      "models": {
+        "claude-3-haiku-20240307": {
+          "tier": "small",
+          "contextWindow": 200000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Fastest Anthropic model. Default classifier."
+        },
+        "claude-3-sonnet-20240229": {
+          "tier": "medium",
+          "contextWindow": 200000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.15,
+          "notes": "Balanced Anthropic model."
+        },
+        "claude-3-5-sonnet-20241022": {
+          "tier": "medium",
+          "contextWindow": 200000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.15,
+          "notes": "Upgraded Sonnet. Used as medium tier."
+        },
+        "claude-3-opus-20240229": {
+          "tier": "large",
+          "contextWindow": 200000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.45,
+          "notes": "Most capable Anthropic model."
+        }
+      }
+    },
+
+    "google": {
+      "id": "google",
+      "name": "Google Gemini",
+      "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "envKey": "GOOGLE_API_KEY",
+      "website": "https://aistudio.google.com",
+      "extraHeaders": {},
+
+      "tiers": {
+        "small":  "gemini-1.5-flash",
+        "medium": "gemini-1.5-pro",
+        "large":  "gemini-1.5-pro"
+      },
+
+      "classifierModel": "gemini-1.5-flash",
+
+      "models": {
+        "gemini-1.5-flash": {
+          "tier": "small",
+          "contextWindow": 1000000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Fast multimodal model. Default classifier."
+        },
+        "gemini-1.5-pro": {
+          "tier": "medium",
+          "contextWindow": 2000000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.15,
+          "notes": "Largest context window. Used for medium and large tiers."
+        },
+        "gemini-2.0-flash": {
+          "tier": "small",
+          "contextWindow": 1000000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Next-gen flash model."
+        },
+        "gemini-2.0-pro": {
+          "tier": "large",
+          "contextWindow": 2000000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.35,
+          "notes": "Next-gen pro model."
+        }
+      }
+    },
+
+    "zai": {
+      "id": "zai",
+      "name": "Z.AI (GLM)",
+      "baseURL": "https://open.bigmodel.cn/api/paas/v4/",
+      "envKey": "ZAI_API_KEY",
+      "website": "https://open.bigmodel.cn",
+      "extraHeaders": {},
+
+      "tiers": {
+        "small":  "glm-4-flash",
+        "medium": "glm-4-air",
+        "large":  "glm-4-plus"
+      },
+
+      "classifierModel": "glm-4-flash",
+
+      "models": {
+        "glm-4-flash": {
+          "tier": "small",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Fastest GLM model. Default classifier."
+        },
+        "glm-4-air": {
+          "tier": "medium",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.10,
+          "notes": "Balanced GLM model."
+        },
+        "glm-4": {
+          "tier": "large",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.30,
+          "notes": "Standard large GLM."
+        },
+        "glm-4-plus": {
+          "tier": "large",
+          "contextWindow": 128000,
+          "carbonFactor_gCO2_per_1k_tokens": 0.45,
+          "notes": "Most capable GLM model."
+        }
+      }
+    },
+
+    "groq": {
+      "id": "groq",
+      "name": "Groq",
+      "baseURL": "https://api.groq.com/openai/v1",
+      "envKey": "GROQ_API_KEY",
+      "website": "https://console.groq.com",
+      "extraHeaders": {},
+
+      "tiers": {
+        "small":  "llama-3.1-8b-instant",
+        "medium": "llama-3.1-70b-versatile",
+        "large":  "llama-3.1-70b-versatile"
+      },
+
+      "classifierModel": "llama-3.1-8b-instant",
+
+      "models": {
+        "llama-3.1-8b-instant": {
+          "tier": "small",
+          "contextWindow": 131072,
+          "carbonFactor_gCO2_per_1k_tokens": 0.01,
+          "notes": "Extremely fast inference via Groq LPU. Default classifier."
+        },
+        "llama-3.1-70b-versatile": {
+          "tier": "medium",
+          "contextWindow": 131072,
+          "carbonFactor_gCO2_per_1k_tokens": 0.10,
+          "notes": "Largest available on Groq. Used for medium and large tiers."
+        },
+        "mixtral-8x7b-32768": {
+          "tier": "medium",
+          "contextWindow": 32768,
+          "carbonFactor_gCO2_per_1k_tokens": 0.08,
+          "notes": "MoE model — good cost/quality balance."
+        },
+        "gemma2-9b-it": {
+          "tier": "small",
+          "contextWindow": 8192,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Google Gemma 2 on Groq."
+        }
+      }
+    },
+
+    "mistral": {
+      "id": "mistral",
+      "name": "Mistral AI",
+      "baseURL": "https://api.mistral.ai/v1",
+      "envKey": "MISTRAL_API_KEY",
+      "website": "https://console.mistral.ai",
+      "extraHeaders": {},
+
+      "tiers": {
+        "small":  "mistral-small-latest",
+        "medium": "mistral-medium-latest",
+        "large":  "mistral-large-latest"
+      },
+
+      "classifierModel": "mistral-small-latest",
+
+      "models": {
+        "mistral-small-latest": {
+          "tier": "small",
+          "contextWindow": 32768,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Default classifier. Fast and cheap."
+        },
+        "mistral-medium-latest": {
+          "tier": "medium",
+          "contextWindow": 32768,
+          "carbonFactor_gCO2_per_1k_tokens": 0.12,
+          "notes": "Balanced Mistral model."
+        },
+        "mistral-large-latest": {
+          "tier": "large",
+          "contextWindow": 32768,
+          "carbonFactor_gCO2_per_1k_tokens": 0.35,
+          "notes": "Most capable Mistral model."
+        },
+        "open-mistral-7b": {
+          "tier": "small",
+          "contextWindow": 32768,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Open-weight 7B model."
+        }
+      }
+    },
+
+    "together": {
+      "id": "together",
+      "name": "Together AI",
+      "baseURL": "https://api.together.xyz/v1",
+      "envKey": "TOGETHER_API_KEY",
+      "website": "https://api.together.ai",
+      "extraHeaders": {},
+
+      "tiers": {
+        "small":  "meta-llama/Llama-3-8b-chat-hf",
+        "medium": "meta-llama/Llama-3-70b-chat-hf",
+        "large":  "meta-llama/Llama-3-70b-chat-hf"
+      },
+
+      "classifierModel": "meta-llama/Llama-3-8b-chat-hf",
+
+      "models": {
+        "meta-llama/Llama-3-8b-chat-hf": {
+          "tier": "small",
+          "contextWindow": 8192,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Default classifier. Fast 8B Llama 3."
+        },
+        "meta-llama/Llama-3-70b-chat-hf": {
+          "tier": "large",
+          "contextWindow": 8192,
+          "carbonFactor_gCO2_per_1k_tokens": 0.15,
+          "notes": "70B Llama 3. Used for medium and large tiers."
+        },
+        "mistralai/Mistral-7B-Instruct-v0.3": {
+          "tier": "small",
+          "contextWindow": 32768,
+          "carbonFactor_gCO2_per_1k_tokens": 0.02,
+          "notes": "Open-weight Mistral 7B via Together."
+        }
+      }
+    }
+
+  },
+
+  "tierScoreMap": {
+    "small":  { "scores": [1, 2], "carbonSavingsPct": 90 },
+    "medium": { "scores": [3],    "carbonSavingsPct": 60 },
+    "large":  { "scores": [4, 5], "carbonSavingsPct": 0  }
+  },
+
+  "carbonFactors": {
+    "_unit": "gCO2 per 1,000 tokens (estimated)",
+    "_note": "Estimates for hackathon demo. Production should use GPU power draw + ElectricityMaps API.",
+    "small_model":  0.02,
+    "medium_model": 0.15,
+    "large_model":  0.45,
+    "gridIntensity_gCO2_per_kWh": 400
+  }
+}

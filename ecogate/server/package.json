@@ -1,0 +1,25 @@
+{
+  "name": "ecogate-server",
+  "version": "0.1.0",
+  "description": "EcoGate — AI inference proxy that routes requests to the smallest capable model and tracks carbon emissions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": [
+    "openai",
+    "proxy",
+    "carbon",
+    "ai"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "openai": "^6.33.0"
+  }
+}
