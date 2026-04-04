@@ -6,87 +6,101 @@ EcoGate is an AI inference proxy that sits between your applications and LLM API
 
 ---
 
-## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 🔀 **Smart Routing** | Complexity classifier scores prompts 1–5; routes to small/medium/large models automatically |
-| 🌱 **Carbon Tracking** | Every API call tagged with estimated gCO₂ based on model size + token count |
-| 📊 **Green Dashboard** | Real-time charts — carbon saved, model distribution, equivalency cards, 30-day heatmap |
-| 🔌 **Drop-in Replacement** | Change one env var (`OPENAI_BASE_URL`) — zero app code changes |
-| 🧪 **CarbonLint** | GitHub Action that scores PRs for wasteful LLM patterns (A–F Green Score) |
-
----
-
 ## 🚀 Quick Start (Local Dev)
 
 ### Prerequisites
 - Node.js 18+
 - An OpenAI API key
 
-### 1. Clone & Configure
-
+### 1. Clone the repo
 ```bash
-git clone https://github.com/your-org/ecogate.git
-cd ecogate
-
-# Copy and fill in your API key
-cp .env.example .env
-# Edit .env → add your OPENAI_API_KEY
+git clone https://github.com/AartiHN123/Ecogate.git
+cd Ecogate/ecogate
 ```
 
-### 2. Start the Proxy Server
-
+### 2. Configure environment
 ```bash
+cp .env.example .env
+# Open .env and add your OPENAI_API_KEY
+```
+
+### 3. Start the proxy server
+```powershell
 cd server
 npm install
 npm run dev
+# → http://localhost:3000
 ```
 
-The proxy is now live at **http://localhost:3000**.
+### 4. Seed demo data (optional but recommended)
+```powershell
+# In the same server/ directory
+npm run seed
+```
 
-### 3. Start the Dashboard
-
-```bash
+### 5. Start the dashboard (new terminal)
+```powershell
 cd dashboard
 npm install
 npm run dev
+# → http://localhost:5173
 ```
-
-Dashboard is at **http://localhost:5173**.
-
-### 4. Seed Demo Data (Optional)
-
-```bash
-cd server
-npm run seed   # Inserts 1 000 realistic demo requests
-```
-
-### 5. Point Your App at EcoGate
-
-In any app that uses the OpenAI SDK, set **one** environment variable:
-
-```bash
-OPENAI_BASE_URL=http://localhost:3000/v1
-```
-
-That's it. Zero other changes.
 
 ---
 
-## 🐳 Docker (One Command)
+## 📤 Git — What to Push
 
-```bash
-# Copy and fill .env first
-cp .env.example .env
-
-docker compose up --build
+### Files that SHOULD be committed
+```
+ecogate/
+├── .env.example                          ✅ Template (no secrets)
+├── .gitignore                            ✅
+├── README.md                             ✅
+├── docker-compose.yml                    ✅
+├── server/
+│   ├── index.js                          ✅
+│   ├── classifier.js                     ✅
+│   ├── router.js                         ✅
+│   ├── carbon.js                         ✅
+│   ├── db.js                             ✅
+│   ├── config.js                         ✅
+│   ├── models.json                       ✅
+│   ├── package.json                      ✅
+│   ├── package-lock.json                 ✅
+│   ├── Dockerfile                        ✅
+│   ├── routes/chat.js                    ✅
+│   ├── routes/api.js                     ✅
+│   ├── middleware/logger.js              ✅
+│   └── scripts/seed.js                   ✅
+├── dashboard/
+│   ├── index.html                        ✅
+│   ├── vite.config.js                    ✅
+│   ├── package.json                      ✅
+│   ├── package-lock.json                 ✅
+│   ├── nginx.conf                        ✅
+│   ├── Dockerfile                        ✅
+│   └── src/                              ✅ (all files inside)
+└── carbon-lint/
+    ├── action.yml                        ✅
+    └── lint.js                           ✅
 ```
 
-| Service | URL |
-|---|---|
-| Proxy  | http://localhost:3000 |
-| Dashboard | http://localhost:5173 |
+### Files that should NEVER be committed (already in .gitignore)
+```
+.env                    ← your API keys — NEVER push this
+ecogate-data.json       ← runtime database
+node_modules/           ← installed by npm install
+dist/ / build/          ← generated build output
+*.log                   ← log files
+```
+
+### Push commands
+```powershell
+# From the root GreenPrompt folder
+git add .
+git commit -m "feat: add EcoGate proxy, dashboard, CarbonLint"
+git push origin dev
+```
 
 ---
 
@@ -116,45 +130,58 @@ X-EcoGate-Saved-G     — gCO₂ saved vs always using the large model
 
 ---
 
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 🔀 **Smart Routing** | Complexity classifier scores prompts 1–5; routes to small/medium/large models |
+| 🌱 **Carbon Tracking** | Every API call tagged with estimated gCO₂ |
+| 📊 **Green Dashboard** | Real-time charts — carbon saved, model distribution, equivalency cards, 30-day heatmap |
+| 🔌 **Drop-in Replacement** | Change one env var (`OPENAI_BASE_URL`) — zero app code changes |
+| 🧪 **CarbonLint** | GitHub Action that scores PRs for wasteful LLM patterns (A–F Green Score) |
+
+---
+
 ## 🗂️ Project Structure
 
 ```
 ecogate/
 ├── server/                 # Node.js + Express proxy
-│   ├── index.js            # Server entry point
 │   ├── classifier.js       # Prompt complexity scorer (GPT-4o-mini)
 │   ├── router.js           # Model selection by score + provider
 │   ├── carbon.js           # Carbon calculation engine
-│   ├── db.js               # SQLite persistence layer
+│   ├── db.js               # JSON file persistence layer
 │   ├── models.json         # Carbon factor lookup table
-│   ├── config.js           # Env var validation
-│   ├── routes/
-│   │   ├── chat.js         # POST /v1/chat/completions
-│   │   └── api.js          # GET /api/stats, /logs, /daily
-│   ├── middleware/
-│   │   └── logger.js       # Morgan HTTP logger
-│   └── scripts/
-│       └── seed.js         # Demo data seeder
+│   ├── routes/chat.js      # POST /v1/chat/completions
+│   ├── routes/api.js       # GET /api/stats, /logs, /daily
+│   └── scripts/seed.js     # Demo data seeder
 ├── dashboard/              # React + Vite + Recharts
-│   ├── src/
-│   │   ├── App.jsx         # App shell + sidebar navigation
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx   # Stats, charts, heatmap
-│   │   │   ├── Logs.jsx        # Request log table
-│   │   │   └── Settings.jsx    # Config + routing rules viewer
-│   │   └── utils/
-│   │       └── carbon.js       # Client-side equivalency helper
-│   ├── index.css           # Dark green glassmorphism theme
-│   └── vite.config.js      # Vite + /api proxy config
+│   └── src/pages/
+│       ├── Dashboard.jsx   # Stats, charts, heatmap
+│       ├── Logs.jsx        # Request log table
+│       └── Settings.jsx    # Config + routing rules
 ├── carbon-lint/            # GitHub Action
 │   ├── action.yml
 │   └── lint.js             # PR diff analyser → Green Score
-├── .github/
-│   └── workflows/
-│       └── carbon-lint.yml # Triggers CarbonLint on PRs
+├── .github/workflows/
+│   └── carbon-lint.yml     # Triggers CarbonLint on PRs
 ├── docker-compose.yml
 └── .env.example
 ```
+
+---
+
+## 🐳 Docker (One Command)
+
+```bash
+cp .env.example .env   # fill in your keys first
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Proxy | http://localhost:3000 |
+| Dashboard | http://localhost:5173 |
 
 ---
 
@@ -165,33 +192,6 @@ ecogate/
 | GPT-4o-mini / Claude Haiku | ~8B | 0.02 |
 | GPT-4o / Claude Sonnet | ~70–200B | 0.15 |
 | GPT-4 / Claude Opus | ~1.8T (MoE) | 0.45 |
-
-**Savings** = what the carbon _would have been_ if always routing to the largest model minus actual carbon used.
-
----
-
-## 🧪 CarbonLint
-
-CarbonLint runs on every PR and flags wasteful LLM patterns:
-
-- Using large models for simple formatting/classification tasks
-- LLM calls inside loops without batching
-- Missing prompt caching for repeated identical inputs
-- Excessive `max_tokens` for short-response tasks
-- Sending full documents when only a summary is needed
-
-**Green Score**: A (excellent) → F (wasteful). Posted as a PR comment automatically.
-
----
-
-## 🛠️ Tech Stack
-
-- **Proxy**: Node.js + Express
-- **Database**: SQLite via `better-sqlite3`
-- **Classifier**: OpenAI GPT-4o-mini
-- **Dashboard**: React 18 + Vite + Recharts
-- **Containerisation**: Docker + Docker Compose
-- **CI/CD**: GitHub Actions (CarbonLint)
 
 ---
 
