@@ -645,14 +645,17 @@ function spawnServices(port) {
   setTimeout(() => {
     const server = spawn('node', ['index.js'], {
       cwd: SERVER_DIR,
-      stdio: 'inherit',
+      stdio: ['ignore', 'inherit', 'inherit'],
       env: { ...process.env, PORT: port },
     });
     server.on('error', (err) => { fail(`Server error: ${err.message}`); process.exit(1); });
     server.on('close', (code) => process.exit(code || 0));
     ok(`EcoGate proxy spawned → ${DM}http://localhost:${port}${R}`);
 
-    setTimeout(() => printSuccessBanner(port), 1500);
+    setTimeout(() => {
+      printSuccessBanner(port);
+      startRepl(port);
+    }, 1500);
   }, 2000);
 
   const cleanup = () => { try { sidecar.kill(); } catch (_) {} };
@@ -676,6 +679,80 @@ ${B}${GR}  ╔══════════════════════
 
   ${DM}Press Ctrl+C to stop all services.${R}
 `);
+}
+
+function openFrontend(port) {
+  const url = `http://localhost:${port}/frontend`;
+  info(`Opening ${url}`);
+  try {
+    const start = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    execSync(`${start} ${url}`);
+  } catch (err) {
+    warn('Could not launch browser automatically.');
+  }
+}
+
+async function addOrChangeKey(actionStr) {
+  const selectedProviders = await multiSelect(
+    `Select provider to ${actionStr}  (Press Enter to confirm)`,
+    ALL_PROVIDERS
+  );
+  if (selectedProviders.length === 0) {
+    warn('Action cancelled.');
+    return;
+  }
+  
+  const prov = selectedProviders[0];
+  const hint = prov.hint ? ` (e.g. ${prov.hint})` : '';
+  const newKey = await askKey(`Enter new key for ${prov.label}${hint}: `);
+  
+  if (!newKey) {
+    warn(`No key entered. Action cancelled.`);
+    return;
+  }
+  
+  let envContent = fs.readFileSync(ENV_FILE, 'utf8');
+  if (envContent.includes(`${prov.envKey}=`)) {
+    // Replace existing key
+    envContent = envContent.replace(new RegExp(`${prov.envKey}=.*`, 'g'), `${prov.envKey}=${newKey}`);
+  } else {
+    // Append
+    envContent += `\n${prov.envKey}=${newKey}\n`;
+  }
+  
+  fs.writeFileSync(ENV_FILE, envContent, 'utf8');
+  ok(`Updated ${prov.envKey} in .env`);
+  warn(`Note: You may need to restart the proxy for changes to take effect.`);
+}
+
+async function startRepl(port) {
+  // Short delay to let any server output clear
+  await new Promise(r => setTimeout(r, 500));
+  
+  while (true) {
+    const cmd = await askText(`\n${CY}ecogate>${R} `);
+    switch (cmd.toLowerCase()) {
+      case '/frontend':
+        openFrontend(port);
+        break;
+      case '/change-key':
+        await addOrChangeKey('change key');
+        break;
+      case '/add-key':
+        await addOrChangeKey('add key');
+        break;
+      case 'exit':
+      case 'quit':
+      case '/exit':
+      case '/quit':
+        process.exit(0);
+      default:
+        if (cmd) {
+          warn(`Unknown command: ${cmd}`);
+          info(`Available commands: /frontend, /change-key, /add-key, /exit`);
+        }
+    }
+  }
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────

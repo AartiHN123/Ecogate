@@ -33,18 +33,18 @@ const PROVIDER_ID = (args.find((a) => a.startsWith('--provider=')) || '--provide
 const RUN_DIRECT  = !args.includes('--no-direct');
 const RUN_PROXY   = !args.includes('--no-proxy');
 
-// ─── The Test Prompt ────────────────────────────────────────────────────────
-// A multi-sentence prompt to trigger compression meaningfully.
 const TEST_PROMPT = `
-I need you to help me create a simple but functional Todo List web application using HTML, CSS, and JavaScript.
+I would like you to act as a senior web developer and help me with a very important project. I need to build a comprehensive e-commerce product page, but I want to make sure it is completely responsive and accessible. 
 
-The app should support the following operations: adding tasks, marking tasks as complete, and deleting tasks.
-It should also have a clear button to remove all completed tasks.
-The display should show the current list and update in real time as the user presses buttons.
-Please make sure the design is clean and modern with a dark theme.
-The JavaScript logic should use LocalStorage to persist the tasks.
-Please write the complete working HTML file with inline CSS and JavaScript so I can just open it in a browser without any build steps.
-The response should be complete, production-ready code with no placeholders or TODO comments.
+First of all, I need a navigation bar at the very top of the page that has links to Home, Products, About Us, and Contact. Make sure it sticks to the top of the window when the user scrolls down.
+
+Below that, I would absolutely love to have a large hero section with a nice placeholder background image, a big bold title saying "Welcome to Our Store", and a call-to-action button that says "Shop Now" which changes color when you hover over it.
+
+Underneath the hero section, please create a grid layout that displays at least six different product cards. Every single product card needs to have a product image placeholder, a title, a short description, a price tag, and an "Add to Cart" button. The grid must be completely responsive, meaning it should show one column on mobile devices, two columns on tablets, and three columns on desktops.
+
+Please make sure you are using HTML5 semantic tags wherever possible. For the styling, please use plain CSS without any frameworks. Write JavaScript so that when a user clicks "Add to Cart", an alert pops up saying "Item added to cart!". 
+
+Could you please provide the completely working code with no omissions or 'TODO' comments? I just want to be able to copy and paste the code and have it work right away. Thank you so much in advance for your help!
 `.trim();
 
 // ─── Provider → direct API base URL mapping ─────────────────────────────────

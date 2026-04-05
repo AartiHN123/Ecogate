@@ -9,19 +9,7 @@
       "gpt-3.5-turbo"
     ],
     "large": [],
-    "fetchedAt": "2026-04-05T15:30:25.642Z",
-    "source": "static"
-  },
-  "google": {
-    "small": [
-      "gemini-3.1-flash-lite-preview",
-      "gemini-3.1-pro-preview",
-      "gemini-2.0-flash",
-      "gemini-2.0-pro"
-    ],
-    "medium": [],
-    "large": [],
-    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "fetchedAt": "2026-04-05T16:01:20.447Z",
     "source": "static"
   },
   "groq": {
@@ -34,7 +22,7 @@
     "large": [
       "llama-3.1-70b-versatile"
     ],
-    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "fetchedAt": "2026-04-05T16:01:20.448Z",
     "source": "static"
   },
   "mistral": {
@@ -48,7 +36,7 @@
     "large": [
       "mistral-large-latest"
     ],
-    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "fetchedAt": "2026-04-05T16:01:20.448Z",
     "source": "static"
   },
   "together": {
@@ -60,17 +48,32 @@
     "large": [
       "meta-llama/Llama-3-70b-chat-hf"
     ],
-    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "fetchedAt": "2026-04-05T16:01:20.448Z",
     "source": "static"
   },
   "ollama": {
     "small": [],
     "medium": [
-      "qwen3.5:2b"
+      "qwen3.5:2b",
+      "llama3.2",
+      "mistral",
+      "qwen2.5:1.5b"
     ],
     "large": [],
-    "fetchedAt": "2026-04-05T15:30:25.722Z",
-    "source": "live"
+    "fetchedAt": "2026-04-05T16:01:20.448Z",
+    "source": "static"
+  },
+  "google": {
+    "small": [
+      "gemini-3.1-flash-lite-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-2.0-flash",
+      "gemini-2.0-pro"
+    ],
+    "medium": [],
+    "large": [],
+    "fetchedAt": "2026-04-05T16:01:20.633Z",
+    "source": "static"
   },
   "anthropic": {
     "small": [
@@ -82,7 +85,7 @@
     "large": [
       "claude-opus-4-6"
     ],
-    "fetchedAt": "2026-04-05T15:30:25.971Z",
+    "fetchedAt": "2026-04-05T16:01:20.704Z",
     "source": "static"
   },
   "zai": {
@@ -98,7 +101,7 @@
       "glm-5.1"
     ],
     "large": [],
-    "fetchedAt": "2026-04-05T15:30:26.149Z",
+    "fetchedAt": "2026-04-05T16:01:22.001Z",
     "source": "live"
   }
 }

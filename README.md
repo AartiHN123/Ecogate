@@ -5,9 +5,11 @@
 
 EcoGate is an AI inference proxy that sits between your application and any LLM API (OpenAI, Anthropic, Google, and more). It does three things automatically:
 
-1. **Routes requests to the smallest capable model** — 80-90% of queries don't need GPT-4.
-2. **Tracks carbon emissions per request** — every API call is tagged with estimated gCO₂.
-3. **Shows you the impact** — a real-time dashboard with carbon saved, trees planted, and miles offset.
+1. **Compresses Prompts** — reduces tokens via an NLP sidecar before it ever hits the LLM.
+2. **Caches Responses** — saves duplicate requests to skip the LLM compute entirely!
+3. **Routes requests to the smallest capable model** — 80-90% of queries don't need giant models.
+4. **Tracks carbon emissions per request** — every API call is tagged with estimated gCO₂ savings.
+5. **Shows you the impact** — a real-time React dashboard with carbon saved, tokens squished, and trees planted.
 
 **Drop-in replacement.** Change one environment variable in your app. Zero code changes needed.
 
@@ -19,16 +21,19 @@ EcoGate is an AI inference proxy that sits between your application and any LLM 
 Your App
    │  OPENAI_BASE_URL=http://localhost:3000/v1
    ▼
-┌─────────────────────────────────────────────┐
-│              EcoGate Proxy                  │
-│                                             │
-│  1. Classify complexity (GPT-4o-mini)       │
-│  2. Route to optimal model tier             │
-│  3. Forward request to provider             │
-│  4. Calculate & log carbon                  │
-│  5. Broadcast to dashboard via WebSocket    │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│              EcoGate Node Proxy              │
+│                                              │
+│  1. Check Semantic Prompt Cache              │
+│  2. Compress Prompt via Python NLP Sidecar   │
+│  3. Classify complexity (e.g. gpt-4o-mini)   │
+│  4. Route to optimal model tier              │
+│  5. Forward compressed request to provider   │
+│  6. Calculate tokens & log carbon saved      │
+│  7. Broadcast to Live React Dashboard        │
+└──────────────────────────────────────────────┘
    │
+   ├── Python NLP Sidecar (Stop-words, LLMLingua)
    ├── OpenAI  (gpt-4o-mini / gpt-4o / gpt-4-turbo)
    ├── Anthropic (haiku / sonnet / opus)
    ├── Google  (gemini-flash / gemini-pro)
@@ -48,17 +53,34 @@ Your App
 
 ## Quick Start
 
-### Prerequisites
+### The Magic One-Liner Install
+
+Get the Python Sidecar, Node Proxy, Ollama integration, and React Dashboard up and running flawlessly in one command:
+
+```bash
+curl -sL https://raw.githubusercontent.com/AartiHN123/Ecogate/main/install.sh | bash
+```
+
+---
+
+### Manual Setup (If you prefer terminal wizardry)
+
+#### Prerequisites
 
 - Node.js 20+
-- API key for at least one provider (OpenAI, Anthropic, etc.)
+- Python 3.10+ (for NLP Sidecar)
+- API key for at least one provider (OpenAI, Anthropic, Google, Z.AI, etc.)
 
-### 1. Clone & install
+#### 1. Clone & install
 
 ```bash
 git clone https://github.com/AartiHN123/Ecogate
 cd Ecogate/ecogate/server
 npm install
+cd ../dashboard
+npm install
+cd ../nlp-sidecar
+pip install -r requirements.txt
 ```
 
 ### 2. Configure environment
@@ -172,6 +194,19 @@ Generate 1,000 realistic requests for a populated dashboard:
 node seed.js            # insert 1000 rows
 node seed.js --count=500 --clear   # wipe + insert 500 rows
 ```
+
+---
+
+## A/B Comparison Benchmarking
+
+Want to prove EcoGate's efficiency to your team? We include an A/B benchmark script that routes an identical prompt directly to a provider vs. via EcoGate (with payload compression and routing engaged).
+
+```bash
+cd ecogate/server
+node compare-test.js --provider=google
+```
+
+The script will give you a detailed report of the exact token reduction, latency differences, carbon metric evaluations, and routing adjustments!
 
 ---
 
@@ -289,22 +324,23 @@ ws.onmessage = (e) => {
 ```
 Ecogate/
 ├── ecogate/
-│   └── server/
-│       ├── index.js        — Express server, proxy endpoint, REST API
-│       ├── classifier.js   — Complexity scorer (LLM-based, 1–5)
-│       ├── router.js       — Score → model tier → model name
-│       ├── carbon.js       — Carbon calculation engine
-│       ├── db.js           — SQLite schema, queries, timeseries API
-│       ├── providers.js    — Multi-provider registry
-│       ├── model-sync.js   — Live model list sync (6-hour refresh)
-│       ├── ws.js           — WebSocket hub for real-time dashboard
-│       ├── seed.js         — Demo data seeder (1000 realistic rows)
-│       └── models.json     — Carbon factor lookup table per model
+│   ├── server/           — Node.js Proxy, Routing Logic, and SQLite DB
+│   │   ├── compare-test.js — A/B Testing Benchmark tool
+│   │   ├── compressor.js   — Connects Node.js to Python NLP
+│   │   ├── prompt-cache.js — Semantic exact-match caching
+│   │   └── ...
+│   ├── dashboard/        — Modern React/Vite Dashboard Interface
+│   │   ├── src/          — Tailwind + React Components
+│   │   └── ...
+│   └── nlp-sidecar/      — Python FastAPI Prompt Compression Engine
+│       ├── main.py       — Sidecar Entrypoint
+│       └── pipeline.py   — LLMLingua-2 & Stop-word logic
 ├── carbon-lint/
 │   ├── action.yml          — GitHub Action definition
 │   ├── lint.js             — LLM diff analyzer + PR comment poster
 │   └── example-workflow.yml — Copy this into your repo's .github/workflows/
 ├── docker-compose.yml      — Full stack in one command
+├── install.sh              — Simple Magic 1-click Installer
 └── README.md               — This file
 ```
 
