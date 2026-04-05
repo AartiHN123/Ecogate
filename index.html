@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoGate — Setup & Install</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --border: #222222;
+      --text: #f0f0f0;
+      --text-muted: #888888;
+      --accent: #22c55e;
+      --font: 'IBM Plex Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .container { max-width: 600px; padding: 40px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; text-align: center; }
+    h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 8px; }
+    p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+    .code-box { background: var(--bg); border: 1px solid var(--border); padding: 16px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    code { font-size: 0.85rem; color: var(--accent); }
+    button { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: var(--font); font-size: 0.8rem; transition: 0.2s; }
+    button:hover { border-color: var(--text-muted); color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌿 EcoGate Proxy</h1>
+    <p>Run locally, route intelligently, reduce token emissions. Install the full CLI proxy & dashboard instantly with one command.</p>
+    <div class="code-box">
+      <code id="cmd">curl -sL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO/main/install.sh | bash</code>
+      <button onclick="copyCmd(this)">Copy</button>
+    </div>
+  </div>
+  <script>
+    function copyCmd(btn) {
+      navigator.clipboard.writeText(document.getElementById('cmd').innerText);
+      btn.innerText = 'Copied!';
+      setTimeout(() => btn.innerText = 'Copy', 2000);
+    }
+  </script>
+</body>
+</html>
