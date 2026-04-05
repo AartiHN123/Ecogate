@@ -83,37 +83,16 @@ cd ../nlp-sidecar
 pip install -r requirements.txt
 ```
 
-### 2. Configure environment
+### 2. Configure and run environment
+
+Run the interactive setup tool to configure your API keys and automatically start the proxy:
 
 ```bash
-cp .env.example .env
-# Edit .env and add your API keys
+node setup.js
 ```
 
-Minimum required — add at least one:
 
-```env
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=AIza...
-```
-
-### 3. Start the proxy
-
-```bash
-node index.js
-```
-
-You should see:
-
-```
-🌿 EcoGate Proxy Server  v0.1.0
-✅ Listening on:    http://localhost:3000
-🔌 WebSocket at:   ws://localhost:3000/ws
-🔑 Active providers: OpenAI, Anthropic
-```
-
-### 4. Point your app at EcoGate
+### 3. Point your app at EcoGate
 
 Change **one line** in your app's config:
 
@@ -256,27 +235,18 @@ Add your `OPENAI_API_KEY` as a repository secret and you're done.
 
 ---
 
-## Environment Variables
+## Interactive CLI
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `3000` | Proxy listen port |
-| `OPENAI_API_KEY` | — | OpenAI API key |
-| `ANTHROPIC_API_KEY` | — | Anthropic API key |
-| `GOOGLE_API_KEY` | — | Google Gemini API key |
-| `GROQ_API_KEY` | — | Groq API key |
-| `MISTRAL_API_KEY` | — | Mistral AI API key |
-| `TOGETHER_API_KEY` | — | Together AI API key |
-| `ZAI_API_KEY` | — | Z.AI (GLM) API key |
-| `CLASSIFIER_PROVIDER` | `openai` | Provider to use for complexity classifier |
-| `CLASSIFIER_MODEL` | `gpt-4o-mini` | Model to use for complexity classifier |
-| `CLASSIFIER_API_KEY` | *(provider key)* | Override API key for classifier only |
-| `ECOGATE_RESPECT_MODEL` | `false` | Set `true` to skip routing and honour caller's model |
-| `ROUTER_OPENAI_SMALL` | `gpt-4o-mini` | Override small-tier model for OpenAI |
-| `ROUTER_OPENAI_MEDIUM` | `gpt-4o` | Override medium-tier model for OpenAI |
-| `ROUTER_OPENAI_LARGE` | `gpt-4-turbo` | Override large-tier model for OpenAI |
+EcoGate comes with a persistent interactive console (`ecogate> `) once setup completes. You don't need to hunt down or edit `.env` files manually. 
 
-*(Same `ROUTER_<PROVIDER>_<TIER>` pattern applies for all providers.)*
+Available commands while the server is running:
+
+| Command | Action |
+|---------|--------|
+| `/frontend` | Automatically opens the EcoGate dashboard in your default browser. |
+| `/change-key` | Arrow-key menu to select a provider and update its existing API key. |
+| `/add-key` | Arrow-key menu to add a brand new API key dynamically. |
+| `/exit` | Safely shutdown the EcoGate proxy and NLP sidecar. |
 
 ---
 
