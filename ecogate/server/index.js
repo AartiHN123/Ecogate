@@ -12,6 +12,9 @@ const { classifyPrompt }  = require('./classifier');
 const { routeModel }      = require('./router');
 const { calculateCarbon } = require('./carbon');
 const { createWsHub, broadcast, clientCount } = require('./ws');
+const { compressPrompt }  = require('./compressor');
+const { lookupCache, storeCache, getCacheStats } = require('./prompt-cache');
+
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -140,6 +143,37 @@ app.post('/v1/chat/completions', async (req, res) => {
     });
   }
 
+  // ── 4. Cache lookup — short-circuit before any API calls ─────────────────
+  const cacheResult = await lookupCache(body.messages);
+  if (cacheResult.hit) {
+    const cacheStats = getCacheStats();
+    console.log(`[EcoGate] Cache ${cacheResult.tier.toUpperCase()} HIT (sim=${cacheResult.similarity.toFixed(4)}) — skipping all API calls`);
+    logRequest({
+      provider:           provider.id,
+      model:              cacheResult.model || 'cached',
+      tokens_in:          0,
+      tokens_out:         0,
+      latency_ms:         0,
+      complexity_score:   null,
+      complexity_source:  'cache',
+      routing_tier:       null,
+      was_routed:         0,
+      carbon_g:           0,
+      baseline_carbon_g:  0,
+      savings_g:          0,
+      cache_hit:          1,
+      cache_tier:         cacheResult.tier,
+    });
+    broadcast('cache_hit', {
+      tier:        cacheResult.tier,
+      similarity:  cacheResult.similarity,
+      total_hits:  cacheStats.total_hits,
+      timestamp:   new Date().toISOString(),
+    });
+    return res.json(cacheResult.response);
+  }
+
+
   // ── 4. Build OpenAI-SDK client for this provider ─────────────────────────
   const client = new OpenAI({
     apiKey,
@@ -147,8 +181,12 @@ app.post('/v1/chat/completions', async (req, res) => {
     defaultHeaders: provider.extraHeaders || {},
   });
 
-  // ── 5. Classify prompt complexity & route to optimal model ─────────────────
-  const classification = await classifyPrompt(body.messages);
+  // ── 5. Classify prompt complexity & compress prompt ──────────────────────
+  const [classification, compression] = await Promise.all([
+    classifyPrompt(body.messages),
+    compressPrompt(body.messages),
+  ]);
+
   const routing = routeModel(
     classification.score,
     provider.id,
@@ -156,10 +194,11 @@ app.post('/v1/chat/completions', async (req, res) => {
     provider.defaultModel // provider fallback
   );
 
-  // Apply routed model
+  // Apply routed model + compressed messages
   const requestBody = {
     ...body,
-    model: routing.model,
+    messages: compression.compressed_messages,
+    model:    routing.model,
   };
 
   const isStreaming = requestBody.stream === true;
@@ -240,7 +279,16 @@ app.post('/v1/chat/completions', async (req, res) => {
         carbon_g:            carbon.carbon_g,
         baseline_carbon_g:   carbon.baseline_carbon_g,
         savings_g:           carbon.savings_g,
+        original_tokens:     compression.original_tokens,
+        compressed_tokens:   compression.compressed_tokens,
+        compression_ratio:   compression.savings_pct,
+        cache_hit:           0,
+        cache_tier:          null,
       });
+
+      // Cache the response (fire-and-forget)
+      storeCache(body.messages, { choices: [{ message: { role: 'assistant', content: 'stream' } }] }, provider.id, actualModel).catch(() => {});
+
 
       console.log(
         `[EcoGate] ← ${provider.name} (stream) | Model: ${actualModel} | ` +
@@ -290,7 +338,16 @@ app.post('/v1/chat/completions', async (req, res) => {
         carbon_g:            carbon.carbon_g,
         baseline_carbon_g:   carbon.baseline_carbon_g,
         savings_g:           carbon.savings_g,
+        original_tokens:     compression.original_tokens,
+        compressed_tokens:   compression.compressed_tokens,
+        compression_ratio:   compression.savings_pct,
+        cache_hit:           0,
+        cache_tier:          null,
       });
+
+      // Cache the response (fire-and-forget)
+      storeCache(body.messages, completion, provider.id, completion.model || requestBody.model).catch(() => {});
+
 
       console.log(
         `[EcoGate] ← ${provider.name} | Model: ${completion.model} | ` +

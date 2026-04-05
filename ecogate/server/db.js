@@ -34,13 +34,20 @@ db.exec(`
 // Migrate existing DB: add new columns if they don't exist (safe no-op if present)
 const existingCols = db.pragma('table_info(requests)').map((c) => c.name);
 const newCols = [
-  ['complexity_score',  'INTEGER'],
-  ['complexity_source', 'TEXT'],
-  ['routing_tier',      'TEXT'],
-  ['was_routed',        'INTEGER NOT NULL DEFAULT 0'],
-  ['carbon_g',          'REAL    NOT NULL DEFAULT 0'],
-  ['baseline_carbon_g', 'REAL    NOT NULL DEFAULT 0'],
-  ['savings_g',         'REAL    NOT NULL DEFAULT 0'],
+  ['complexity_score',   'INTEGER'],
+  ['complexity_source',  'TEXT'],
+  ['routing_tier',       'TEXT'],
+  ['was_routed',         'INTEGER NOT NULL DEFAULT 0'],
+  ['carbon_g',           'REAL    NOT NULL DEFAULT 0'],
+  ['baseline_carbon_g',  'REAL    NOT NULL DEFAULT 0'],
+  ['savings_g',          'REAL    NOT NULL DEFAULT 0'],
+  // Compression metrics
+  ['original_tokens',    'INTEGER'],
+  ['compressed_tokens',  'INTEGER'],
+  ['compression_ratio',  'REAL'],
+  // Cache metrics
+  ['cache_hit',          'INTEGER NOT NULL DEFAULT 0'],
+  ['cache_tier',         'TEXT'],
 ];
 for (const [col, type] of newCols) {
   if (!existingCols.includes(col)) {
@@ -54,12 +61,16 @@ const insertRequest = db.prepare(`
     timestamp, provider, model,
     tokens_in, tokens_out, latency_ms,
     complexity_score, complexity_source, routing_tier, was_routed,
-    carbon_g, baseline_carbon_g, savings_g
+    carbon_g, baseline_carbon_g, savings_g,
+    original_tokens, compressed_tokens, compression_ratio,
+    cache_hit, cache_tier
   ) VALUES (
     @timestamp, @provider, @model,
     @tokens_in, @tokens_out, @latency_ms,
     @complexity_score, @complexity_source, @routing_tier, @was_routed,
-    @carbon_g, @baseline_carbon_g, @savings_g
+    @carbon_g, @baseline_carbon_g, @savings_g,
+    @original_tokens, @compressed_tokens, @compression_ratio,
+    @cache_hit, @cache_tier
   )
 `);
 
@@ -109,19 +120,26 @@ const selectTotals = db.prepare(`
  */
 function logRequest(row) {
   insertRequest.run({
-    timestamp:         new Date().toISOString(),
-    provider:          row.provider,
-    model:             row.model,
-    tokens_in:         row.tokens_in          || 0,
-    tokens_out:        row.tokens_out         || 0,
-    latency_ms:        row.latency_ms         || 0,
-    complexity_score:  row.complexity_score   ?? null,
-    complexity_source: row.complexity_source  ?? null,
-    routing_tier:      row.routing_tier       ?? null,
-    was_routed:        row.was_routed         ?? 0,
-    carbon_g:          row.carbon_g           || 0,
-    baseline_carbon_g: row.baseline_carbon_g  || 0,
-    savings_g:         row.savings_g          || 0,
+    timestamp:          new Date().toISOString(),
+    provider:           row.provider,
+    model:              row.model,
+    tokens_in:          row.tokens_in           || 0,
+    tokens_out:         row.tokens_out          || 0,
+    latency_ms:         row.latency_ms          || 0,
+    complexity_score:   row.complexity_score    ?? null,
+    complexity_source:  row.complexity_source   ?? null,
+    routing_tier:       row.routing_tier        ?? null,
+    was_routed:         row.was_routed          ?? 0,
+    carbon_g:           row.carbon_g            || 0,
+    baseline_carbon_g:  row.baseline_carbon_g   || 0,
+    savings_g:          row.savings_g           || 0,
+    // Compression
+    original_tokens:    row.original_tokens     ?? null,
+    compressed_tokens:  row.compressed_tokens   ?? null,
+    compression_ratio:  row.compression_ratio   ?? null,
+    // Cache
+    cache_hit:          row.cache_hit           ?? 0,
+    cache_tier:         row.cache_tier          ?? null,
   });
 }
 
