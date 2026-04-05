@@ -48,6 +48,9 @@ const newCols = [
   // Cache metrics
   ['cache_hit',          'INTEGER NOT NULL DEFAULT 0'],
   ['cache_tier',         'TEXT'],
+  ['original_prompt',    'TEXT'],
+  ['compressed_prompt',  'TEXT'],
+  ['compression_model',  'TEXT'],
 ];
 for (const [col, type] of newCols) {
   if (!existingCols.includes(col)) {
@@ -63,14 +66,16 @@ const insertRequest = db.prepare(`
     complexity_score, complexity_source, routing_tier, was_routed,
     carbon_g, baseline_carbon_g, savings_g,
     original_tokens, compressed_tokens, compression_ratio,
-    cache_hit, cache_tier
+    cache_hit, cache_tier,
+    original_prompt, compressed_prompt, compression_model
   ) VALUES (
     @timestamp, @provider, @model,
     @tokens_in, @tokens_out, @latency_ms,
     @complexity_score, @complexity_source, @routing_tier, @was_routed,
     @carbon_g, @baseline_carbon_g, @savings_g,
     @original_tokens, @compressed_tokens, @compression_ratio,
-    @cache_hit, @cache_tier
+    @cache_hit, @cache_tier,
+    @original_prompt, @compressed_prompt, @compression_model
   )
 `);
 
@@ -94,6 +99,25 @@ const selectStats = db.prepare(`
   FROM requests
   GROUP BY provider, routing_tier
   ORDER BY count DESC
+`);
+
+const selectModelStats = db.prepare(`
+  SELECT
+    model,
+    COUNT(*) AS count
+  FROM requests
+  GROUP BY model
+  ORDER BY count DESC
+`);
+
+const selectCompressionStats = db.prepare(`
+  SELECT 
+    SUM(original_tokens) AS total_original,
+    SUM(compressed_tokens) AS total_compressed,
+    AVG(compression_ratio) AS avg_ratio,
+    MAX(CAST(original_tokens AS FLOAT) / compressed_tokens) AS max_ratio
+  FROM requests
+  WHERE compressed_tokens > 0 AND original_tokens > 0
 `);
 
 const selectTotals = db.prepare(`
@@ -140,6 +164,10 @@ function logRequest(row) {
     // Cache
     cache_hit:          row.cache_hit           ?? 0,
     cache_tier:         row.cache_tier          ?? null,
+    // Add these
+    original_prompt:    row.original_prompt     ?? null,
+    compressed_prompt:  row.compressed_prompt   ?? null,
+    compression_model:  row.compression_model   ?? null,
   });
 }
 
@@ -156,6 +184,8 @@ function getLogs(limit = 100) {
 function getStats() {
   const totals    = selectTotals.get();
   const breakdown = selectStats.all();
+  const models    = selectModelStats.all();
+  const compression = selectCompressionStats.get();
 
   // Compute savings_pct at the totals level
   const savings_pct = totals.total_baseline_carbon_g > 0
@@ -165,6 +195,8 @@ function getStats() {
   return {
     totals:    { ...totals, savings_pct },
     breakdown,
+    models,
+    compression,
   };
 }
 

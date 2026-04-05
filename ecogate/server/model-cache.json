@@ -1,0 +1,107 @@
+{
+  "openai": {
+    "small": [
+      "gpt-4o-mini"
+    ],
+    "medium": [
+      "gpt-4o",
+      "gpt-3.5-turbo"
+    ],
+    "large": [
+      "gpt-4-turbo"
+    ],
+    "fetchedAt": "2026-04-05T10:09:20.850Z",
+    "source": "static"
+  },
+  "anthropic": {
+    "small": [
+      "claude-3-haiku-20240307"
+    ],
+    "medium": [
+      "claude-3-5-sonnet-20241022"
+    ],
+    "large": [
+      "claude-3-opus-20240229"
+    ],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  },
+  "google": {
+    "small": [
+      "gemini-1.5-flash",
+      "gemini-1.5-pro",
+      "gemini-2.0-flash",
+      "gemini-2.0-pro"
+    ],
+    "medium": [],
+    "large": [],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  },
+  "zai": {
+    "small": [
+      "glm-4-flash",
+      "glm-4-air"
+    ],
+    "medium": [
+      "glm-4"
+    ],
+    "large": [
+      "glm-4-plus"
+    ],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  },
+  "groq": {
+    "small": [
+      "llama-3.1-8b-instant",
+      "mixtral-8x7b-32768",
+      "gemma2-9b-it"
+    ],
+    "medium": [],
+    "large": [
+      "llama-3.1-70b-versatile"
+    ],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  },
+  "mistral": {
+    "small": [
+      "mistral-small-latest",
+      "open-mistral-7b"
+    ],
+    "medium": [
+      "mistral-medium-latest"
+    ],
+    "large": [
+      "mistral-large-latest"
+    ],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  },
+  "together": {
+    "small": [
+      "meta-llama/Llama-3-8b-chat-hf",
+      "mistralai/Mistral-7B-Instruct-v0.3"
+    ],
+    "medium": [],
+    "large": [
+      "meta-llama/Llama-3-70b-chat-hf"
+    ],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  },
+  "ollama": {
+    "small": [
+      "gemma4:e4b"
+    ],
+    "medium": [
+      "llama3.2",
+      "qwen2.5:1.5b",
+      "mistral"
+    ],
+    "large": [],
+    "fetchedAt": "2026-04-05T10:09:20.854Z",
+    "source": "static"
+  }
+}

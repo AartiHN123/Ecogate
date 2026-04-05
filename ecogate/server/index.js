@@ -3,6 +3,7 @@
 require('dotenv').config();
 
 const http    = require('http');
+const path    = require('path');
 const express = require('express');
 const { OpenAI } = require('openai');
 const { getProvider, getApiKey, listProviders } = require('./providers');
@@ -29,7 +30,7 @@ app.use((_req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   next();
 });
-app.options('*', (_req, res) => res.sendStatus(204));
+app.options(/.*/, (_req, res) => res.sendStatus(204));
 
 // Simple request logger
 app.use((req, _res, next) => {
@@ -41,6 +42,12 @@ app.use((req, _res, next) => {
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'EcoGate Proxy', version: '0.1.0', ws_clients: clientCount() });
 });
+
+// ─── Dashboard ─────────────────────────────────────────────────────────────
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
 
 // ─── List available providers ──────────────────────────────────────────────
 // GET /v1/providers
@@ -163,6 +170,9 @@ app.post('/v1/chat/completions', async (req, res) => {
       savings_g:          0,
       cache_hit:          1,
       cache_tier:         cacheResult.tier,
+      original_prompt:    JSON.stringify(body.messages),
+      compressed_prompt:  null,
+      compression_model:  null,
     });
     broadcast('cache_hit', {
       tier:        cacheResult.tier,
@@ -284,6 +294,9 @@ app.post('/v1/chat/completions', async (req, res) => {
         compression_ratio:   compression.savings_pct,
         cache_hit:           0,
         cache_tier:          null,
+        original_prompt:     JSON.stringify(body.messages),
+        compressed_prompt:   JSON.stringify(compression.compressed_messages),
+        compression_model:   compression.compression_model,
       });
 
       // Cache the response (fire-and-forget)
@@ -311,6 +324,9 @@ app.post('/v1/chat/completions', async (req, res) => {
         savings_pct:       carbon.savings_pct,
         timestamp:         new Date().toISOString(),
         streamed:          true,
+        original_prompt:   JSON.stringify(body.messages),
+        compressed_prompt: JSON.stringify(compression.compressed_messages),
+        compression_model: compression.compression_model,
       });
       broadcast('stats_update', getStats());
     } else {
@@ -343,6 +359,9 @@ app.post('/v1/chat/completions', async (req, res) => {
         compression_ratio:   compression.savings_pct,
         cache_hit:           0,
         cache_tier:          null,
+        original_prompt:     JSON.stringify(body.messages),
+        compressed_prompt:   JSON.stringify(compression.compressed_messages),
+        compression_model:   compression.compression_model,
       });
 
       // Cache the response (fire-and-forget)
@@ -370,6 +389,9 @@ app.post('/v1/chat/completions', async (req, res) => {
         savings_g:         carbon.savings_g,
         savings_pct:       carbon.savings_pct,
         timestamp:         new Date().toISOString(),
+        original_prompt:   JSON.stringify(body.messages),
+        compressed_prompt: JSON.stringify(compression.compressed_messages),
+        compression_model: compression.compression_model,
       });
       broadcast('stats_update', getStats());
 

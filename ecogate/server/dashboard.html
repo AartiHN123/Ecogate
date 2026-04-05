@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoGate — Carbon Dashboard</title>
+  <meta name="description" content="Real-time carbon savings dashboard for EcoGate AI inference proxy. Track emissions reduced, models routed, and tokens processed." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ── Reset & tokens ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0a;
+      --surface:   #111111;
+      --surface-2: #181818;
+      --border:    #222222;
+      --border-2:  #2a2a2a;
+
+      --text-primary:   #f0f0f0;
+      --text-secondary: #888888;
+      --text-muted:     #555555;
+
+      /* accent — used sparingly */
+      --accent:         #22c55e;   /* green — carbon savings */
+      --accent-dim:     rgba(34,197,94,0.12);
+      --accent-border:  rgba(34,197,94,0.25);
+
+      --blue:      #3b82f6;
+      --blue-dim:  rgba(59,130,246,0.12);
+
+      --amber:     #f59e0b;
+      --amber-dim: rgba(245,158,11,0.12);
+
+      --red:       #ef4444;
+      --red-dim:   rgba(239,68,68,0.12);
+
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font:      'IBM Plex Mono', monospace;
+      --mono:      'IBM Plex Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg:        #f8f8f7;
+      --surface:   #ffffff;
+      --surface-2: #f2f2f0;
+      --border:    #e4e4e0;
+      --border-2:  #d4d4ce;
+
+      --text-primary:   #111111;
+      --text-secondary: #555555;
+      --text-muted:     #999999;
+
+      --accent-dim:    rgba(34,197,94,0.10);
+      --accent-border: rgba(34,197,94,0.30);
+
+      --blue-dim:  rgba(59,130,246,0.10);
+      --amber-dim: rgba(245,158,11,0.10);
+      --red-dim:   rgba(239,68,68,0.10);
+    }
+
+    [data-theme="light"] nav {
+      background: rgba(248,248,247,0.88);
+    }
+
+    [data-theme="light"] .toast {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    }
+
+    html { font-size: 15px; scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ────────────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(10,10,10,0.85);
+      transition: background 0.2s;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 32px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .nav-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--text-primary);
+      background: var(--surface-2);
+    }
+
+    .nav-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ws-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .ws-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+
+    .ws-dot.live { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse-dot 2s infinite; }
+    .ws-dot.error { background: var(--red); }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .btn-outline {
+      font-size: 0.78rem;
+      font-weight: 500;
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-2);
+      border-radius: 5px;
+      padding: 5px 12px;
+      background: none;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-outline:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+    /* ── Main ───────────────────────────────────────────────────────────── */
+    main {
+      padding: 32px 28px 64px;
+      max-width: 1380px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── Section heading ────────────────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .section-action {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .section-action:hover { color: var(--text-secondary); }
+
+    /* ── Hero stats ─────────────────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .stat-card:hover { border-color: var(--border-2); cursor: none; }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: var(--y, -150px);
+      left: var(--x, -150px);
+      width: 150px;
+      height: 150px;
+      background: radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 60%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    .stat-card:hover::before { opacity: 1; }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-label .icon { font-size: 0.85rem; }
+
+    .stat-value {
+      font-size: 2.1rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      font-family: var(--mono);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-value .unit {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-left: 2px;
+    }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      font-family: var(--mono);
+      padding: 2px 7px;
+      border-radius: 20px;
+    }
+
+    .badge-green { background: var(--accent-dim); color: var(--accent); }
+    .badge-blue  { background: var(--blue-dim);  color: var(--blue); }
+    .badge-amber { background: var(--amber-dim); color: var(--amber); }
+    .badge-red   { background: var(--red-dim);   color: var(--red); }
+    .badge-mono  { background: var(--surface-2); color: var(--text-secondary); border: 1px solid var(--border); }
+
+    /* ── Analogous row of secondary cards ─────────────────────────────── */
+    .secondary-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    /* ── Chart card ─────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .card-body { padding: 20px; }
+
+    .chart-wrap {
+      position: relative;
+      height: 400px;
+    }
+
+    /* ── Period tabs ─────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+    }
+
+    .tab-btn {
+      font-size: 0.72rem;
+      font-weight: 500;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      padding: 3px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active { background: var(--surface-2); color: var(--text-primary); }
+
+    /* ── Provider breakdown ─────────────────────────────────────────────── */
+    .provider-list { display: flex; flex-direction: column; gap: 0; }
+
+    .provider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .provider-row:last-child { border-bottom: none; }
+    .provider-row:hover { background: var(--surface-2); }
+
+    .provider-name {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      min-width: 90px;
+    }
+
+    .provider-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .provider-bar {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--text-muted);
+      transition: width 0.6s ease;
+    }
+
+    .provider-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      min-width: 50px;
+      text-align: right;
+    }
+
+    /* ── Bottom split ────────────────────────────────────────────────────── */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ── Live feed table ─────────────────────────────────────────────────── */
+    .feed-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+
+    .feed-table th {
+      text-align: left;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .feed-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 0.76rem;
+    }
+
+    .feed-table tr:last-child td { border-bottom: none; }
+
+    .feed-table tbody tr {
+      transition: background 0.12s;
+    }
+
+    .feed-table tbody tr:hover { background: var(--surface-2); }
+
+    .feed-table .provider-cell {
+      color: var(--text-primary);
+      font-weight: 500;
+      font-family: var(--font);
+      font-size: 0.78rem;
+    }
+
+    .feed-table .model-cell {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+    }
+
+    .fade-in-row {
+      animation: fadeInRow 0.3s ease forwards;
+    }
+
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── Routing breakdown ──────────────────────────────────────────────── */
+    .tier-list { display: flex; flex-direction: column; gap: 0; }
+
+    .tier-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 20px;
+      gap: 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .tier-row:last-child { border-bottom: none; }
+    .tier-row:hover { background: var(--surface-2); }
+
+    .tier-badge {
+      width: 60px;
+      text-align: center;
+    }
+
+    .tier-info { flex: 1; }
+
+    .tier-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .tier-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .tier-stat {
+      text-align: right;
+    }
+
+    .tier-count {
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: var(--mono);
+      color: var(--text-primary);
+    }
+
+    .tier-pct {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--mono);
+    }
+
+    /* ── Cache panel ────────────────────────────────────────────────────── */
+    .cache-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .cache-cell {
+      background: var(--surface);
+      padding: 18px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .cache-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .cache-label {
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ── Toaster ─────────────────────────────────────────────────────────── */
+    #toaster {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      z-index: 999;
+    }
+
+    .toast {
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 220px;
+      animation: slideToast 0.2s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .toast .toast-icon { font-size: 0.9rem; }
+    .toast.toast-green { border-color: var(--accent-border); }
+    .toast.toast-green .toast-icon { color: var(--accent); }
+
+    @keyframes slideToast {
+      from { opacity: 0; transform: translateX(12px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── Footer ─────────────────────────────────────────────────────────── */
+    .page-footer {
+      border-top: 1px solid var(--border);
+      margin-top: 48px;
+      padding: 20px 28px;
+      max-width: 1380px;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-left { font-size: 0.75rem; color: var(--text-muted); }
+    .footer-right { font-size: 0.72rem; color: var(--text-muted); font-family: var(--mono); }
+
+    /* ── Empty state ─────────────────────────────────────────────────────── */
+    .empty {
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    #page-routes .tier-row, #page-routes .provider-row {
+      cursor: pointer;
+    }
+
+    /* ── Divider ─────────────────────────────────────────────────────────── */
+    .mb-28 { margin-bottom: 28px; }
+
+    /* ── Skeleton loading ────────────────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+
+    /* ── Responsive ──────────────────────────────────────────────────────── */
+    @media (max-width: 1100px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .secondary-grid { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; gap: 16px; }
+      main { padding: 20px 16px 48px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .nav-links { display: none; }
+    }
+
+    /* ── SPA pages ───────────────────────────────────────────────────────── */
+    .page {
+      display: none;
+      padding: 32px 28px 64px;
+      max-width: 1380px;
+      margin: 0 auto;
+      width: 100%;
+      animation: pageIn 0.18s ease;
+    }
+
+    .page.active-page { display: block; }
+
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── Nav ──────────────────────────────────────────────────── -->
+  <nav>
+    <a class="nav-brand" href="#dashboard">
+      <div class="nav-logo">🌿</div>
+      <span class="nav-name">EcoGate</span>
+    </a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="#dashboard" data-page="dashboard" class="active">Overview</a></li>
+      <li><a href="#logs"      data-page="logs">Logs</a></li>
+      <li><a href="#routes"    data-page="routes">Routing</a></li>
+    </ul>
+    <div class="nav-right">
+      <div class="ws-indicator">
+        <div class="ws-dot" id="ws-dot"></div>
+        <span id="ws-label">connecting</span>
+      </div>
+      <button class="btn-outline" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark">&#9728;&#65038;</button>
+      <button class="btn-outline" id="refresh-btn">Refresh</button>
+    </div>
+  </nav>
+
+  <!-- ══ PAGE: dashboard ══ -->
+  <main id="page-dashboard" class="page active-page">
+
+    <div class="section-header" style="margin-bottom:14px;">
+      <span class="section-title" style="font-size: 1.5rem;">Overview</span>
+      <span class="section-action" id="last-updated">–</span>
+    </div>
+
+    <div class="stats-grid mb-28">
+      <div class="stat-card">
+        <div class="stat-label"><span class="icon">🌱</span> CO₂ Saved</div>
+        <div class="stat-value" id="stat-savings">– <span class="unit">g</span></div>
+        <div class="stat-sub" id="stat-savings-sub">estimated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><span class="icon">⚡</span> Total Requests</div>
+        <div class="stat-value" id="stat-requests">–</div>
+        <div class="stat-sub" id="stat-requests-sub">all time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><span class="icon">🔢</span> Tokens Processed</div>
+        <div class="stat-value" id="stat-tokens">–</div>
+        <div class="stat-sub" id="stat-tokens-sub">in + out</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label"><span class="icon">⚡</span> Cache Hit Rate</div>
+        <div class="stat-value" id="stat-cache">–<span class="unit">%</span></div>
+        <div class="stat-sub" id="stat-cache-sub">prompt cache</div>
+      </div>
+    </div>
+
+    <div class="secondary-grid mb-28">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Carbon Saved Over Time</span>
+          <div class="tabs">
+            <button class="tab-btn active" data-period="1d" id="tab-1d">1D</button>
+            <button class="tab-btn" data-period="7d"  id="tab-7d">7D</button>
+            <button class="tab-btn" data-period="30d" id="tab-30d">30D</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="chart-wrap"><canvas id="chart-timeseries"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-grid mb-28">
+      <div class="card">
+        <div class="card-header" style="justify-content: flex-start;">
+          <span class="card-title" style="flex: 1;">Model Breakdown</span>
+          <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex;">
+            <span style="width: 80px; text-align: right; padding-right: 16px;">Use</span>
+            <span style="width: 50px; text-align: right;">%</span>
+          </div>
+        </div>
+        <div class="provider-list" id="model-list"><div class="empty">Loading…</div></div>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column;">
+        <div class="card-header" style="justify-content: flex-start;">
+          <span class="card-title" style="flex: 1;">Prompt Compression Efficiency</span>
+        </div>
+        <div class="card-body" style="padding: 0; flex: 1; display: flex; flex-direction: column;">
+          <div class="cache-grid" style="grid-template-columns: 1fr 1fr; flex: 1;">
+            <div class="cache-cell"><div class="cache-value" id="comp-ratio">–</div><div class="cache-label">Avg Ratio</div></div>
+            <div class="cache-cell"><div class="cache-value" id="comp-max">–</div><div class="cache-label">Max Ratio</div></div>
+            <div class="cache-cell"><div class="cache-value" id="comp-orig" style="font-size:1.1rem; color:var(--text-secondary)">–</div><div class="cache-label">Orig Tokens</div></div>
+            <div class="cache-cell"><div class="cache-value" id="comp-comp" style="font-size:1.1rem; color:var(--text-secondary)">–</div><div class="cache-label">Comp Tokens</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══ PAGE: logs ══ -->
+  <main id="page-logs" class="page">
+
+    <div class="section-header" style="margin-bottom:20px;">
+      <span class="section-title" style="font-size: 1.5rem;">REQUEST LOGS</span>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="ws-dot" id="feed-dot" style="width:6px;height:6px;"></div>
+        <span style="font-size:0.75rem;color:var(--text-muted);font-family:var(--mono);" id="feed-count">0 req</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table class="feed-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Provider</th>
+              <th>Model</th>
+              <th>Tier</th>
+              <th>Tokens In</th>
+              <th>Tokens Out</th>
+              <th>CO&#8322; Saved</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody id="feed-body">
+            <tr><td colspan="8" class="empty">Waiting for requests…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ══ PAGE: routes ══ -->
+  <main id="page-routes" class="page">
+
+    <div class="section-header" style="margin-bottom:20px;">
+      <span class="section-title" style="font-size: 1.5rem;">Routing &amp; Cache</span>
+      <span class="section-action" id="routes-updated">–</span>
+    </div>
+
+    <div class="bottom-grid mb-28">
+      <div class="card" style="display:flex; flex-direction:column;">
+        <div class="card-header"><span class="card-title">Routing Tiers</span></div>
+        <div class="tier-list" id="tier-list" style="flex:1;"><div class="empty">Loading…</div></div>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column;">
+        <div class="card-header"><span class="card-title">Cache Performance</span></div>
+        <div class="cache-grid" id="cache-grid" style="flex:1;">
+          <div class="cache-cell"><div class="cache-value" id="cache-hits">–</div><div class="cache-label">Hits</div></div>
+          <div class="cache-cell"><div class="cache-value" id="cache-exact">–</div><div class="cache-label">Exact</div></div>
+          <div class="cache-cell"><div class="cache-value" id="cache-semantic">–</div><div class="cache-label">Semantic</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="justify-content: flex-start;">
+        <span class="card-title" style="flex: 1;">Provider Breakdown</span>
+        <div style="font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex;">
+          <span style="width: 120px; text-align: right; padding-right: 16px;">Total Requests</span>
+          <span style="width: 80px; text-align: right;">% of Total</span>
+        </div>
+      </div>
+      <div class="provider-list" id="provider-list-routes"><div class="empty">Loading…</div></div>
+    </div>
+
+  </main>
+
+  <footer class="page-footer">
+    <span class="footer-left">EcoGate · Carbon Diet for AI Inference · v0.1.0</span>
+    <span class="footer-right" id="footer-server">→ localhost:3000</span>
+  </footer>
+
+</div>
+
+<!-- Table Modal -->
+<div id="table-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+  <div class="modal-content" style="background: var(--surface); padding: 24px; border-radius: var(--radius-lg); max-width: 900px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+      <h2 id="table-modal-title" style="font-size: 1.2rem; font-weight: 600;">Requests</h2>
+      <button onclick="document.getElementById('table-modal').style.display='none'" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem;">&times;</button>
+    </div>
+    <div class="card" style="margin: 0; border: none; box-shadow: none;">
+      <div style="overflow-x:auto;">
+        <table class="feed-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Provider</th>
+              <th>Model</th>
+              <th>Tier</th>
+              <th>Tokens In</th>
+              <th>Tokens Out</th>
+              <th>CO&#8322; Saved</th>
+              <th>Latency</th>
+            </tr>
+          </thead>
+          <tbody id="table-modal-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toaster"></div>
+
+<!-- Modal -->
+<div id="log-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+  <div class="modal-content" style="background: var(--surface); padding: 24px; border-radius: var(--radius-lg); max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+      <h2 style="font-size: 1.2rem; font-weight: 600;">Request Details</h2>
+      <button onclick="document.getElementById('log-modal').style.display='none'" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem;">&times;</button>
+    </div>
+    <div id="modal-table-data" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;"></div>
+    <div style="margin-bottom: 16px;">
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Original Prompt</h3>
+      <pre id="modal-original" style="background: var(--surface-2); padding: 12px; border-radius: var(--radius); font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; word-break: break-all;"></pre>
+    </div>
+    <div>
+      <h3 style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Compressed &amp; Structured Prompt</h3>
+      <pre id="modal-compressed" style="background: var(--surface-2); padding: 12px; border-radius: var(--radius); font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; word-break: break-all;"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ── Config ──────────────────────────────────────────────────────────── */
+const API_BASE = window.location.origin;  // same origin
+const WS_URL   = `ws://${window.location.host}/ws`;
+const MAX_FEED  = 50;
+
+/* ── State ───────────────────────────────────────────────────────────── */
+let feedRows = [];
+let chartPeriod = '1d';
+let tsChart = null;
+
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+
+function fmtNum(n, decimals = 0) {
+  if (n === null || n === undefined || isNaN(n)) return '–';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return decimals ? parseFloat(n).toFixed(decimals) : Math.round(n).toLocaleString();
+}
+
+function fmtCarbon(g) {
+  if (g === null || g === undefined) return '–';
+  if (g >= 1000) return (g / 1000).toFixed(2) + ' kg';
+  if (g >= 1)    return g.toFixed(2) + ' g';
+  return (g * 1000).toFixed(0) + ' mg';
+}
+
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return `${Math.round(s)}s ago`;
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  return `${Math.floor(s/3600)}h ago`;
+}
+
+function toast(msg, icon = '✦', cls = '') {
+  const t = document.createElement('div');
+  t.className = `toast ${cls}`;
+  t.innerHTML = `<span class="toast-icon">${icon}</span><span>${msg}</span>`;
+  $('toaster').prepend(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+/* ── WebSocket ───────────────────────────────────────────────────────── */
+let ws = null;
+let wsRetry = 0;
+
+function connectWs() {
+  try { ws = new WebSocket(WS_URL); } catch { return scheduleReconnect(); }
+
+  ws.onopen = () => {
+    wsRetry = 0;
+    setWsStatus('live');
+  };
+
+  ws.onmessage = e => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+
+    if (msg.type === 'request_complete') {
+      addFeedRow(msg.data);
+    }
+    if (msg.type === 'stats_update') {
+      renderStats(msg.data);
+    }
+    if (msg.type === 'cache_hit') {
+      toast(`Cache ${msg.data.tier} hit! (${(msg.data.similarity * 100).toFixed(0)}% similar)`, '⚡', 'toast-green');
+    }
+  };
+
+  ws.onerror = () => setWsStatus('error');
+
+  ws.onclose = () => {
+    setWsStatus('offline');
+    scheduleReconnect();
+  };
+}
+
+function scheduleReconnect() {
+  const delay = Math.min(1000 * 2 ** wsRetry++, 30000);
+  setTimeout(connectWs, delay);
+}
+
+function setWsStatus(state) {
+  const dot    = $('ws-dot');
+  const feedDot = $('feed-dot');
+  const label  = $('ws-label');
+
+  dot.className    = `ws-dot ${state === 'live' ? 'live' : state === 'error' ? 'error' : ''}`;
+  feedDot.className = `ws-dot ${state === 'live' ? 'live' : ''}`;
+
+  label.textContent = state === 'live' ? 'live' : state === 'error' ? 'error' : 'offline';
+}
+
+/* ── REST data fetch ─────────────────────────────────────────────────── */
+async function fetchStats() {
+  try {
+    const r = await fetch(`${API_BASE}/api/stats`);
+    if (!r.ok) throw new Error(r.statusText);
+    renderStats(await r.json());
+  } catch (err) {
+    console.warn('stats fetch failed', err);
+  }
+}
+
+async function fetchTimeseries(period) {
+  try {
+    const r = await fetch(`${API_BASE}/api/stats/timeseries?period=${period}`);
+    if (!r.ok) throw new Error(r.statusText);
+    renderChart(await r.json(), period);
+  } catch (err) {
+    console.warn('timeseries fetch failed', err);
+  }
+}
+
+async function fetchLogs() {
+  try {
+    const r = await fetch(`${API_BASE}/api/logs?limit=50`);
+    if (!r.ok) throw new Error(r.statusText);
+    const logs = await r.json();
+    feedRows = logs.slice(0, MAX_FEED);
+    renderFeed();
+  } catch (err) {
+    console.warn('logs fetch failed', err);
+  }
+}
+
+/* ── Render: stats ───────────────────────────────────────────────────── */
+function renderStats(data) {
+  if (!data) return;
+
+  const t = data.totals || {};
+
+  // Savings
+  const savingsG = t.total_savings_g ?? 0;
+  $('stat-savings').innerHTML = `${fmtCarbon(savingsG).replace(/ /g, '&thinsp;')}`;
+  $('stat-savings-sub').textContent = `estimated · ${fmtCarbon(t.total_carbon_g ?? 0)} emitted`;
+
+  // Requests
+  const reqs = t.total_requests ?? 0;
+  $('stat-requests').textContent = fmtNum(reqs);
+  $('stat-requests-sub').textContent = `${fmtNum(t.cache_hits ?? 0)} from cache`;
+
+  // Tokens
+  const tokens = (t.total_tokens_in ?? 0) + (t.total_tokens_out ?? 0);
+  $('stat-tokens').textContent = fmtNum(tokens);
+  $('stat-tokens-sub').textContent = `${fmtNum(t.total_tokens_in ?? 0)} in · ${fmtNum(t.total_tokens_out ?? 0)} out`;
+
+  // Cache hit rate
+  const hitRate = reqs > 0 ? ((t.cache_hits ?? 0) / reqs * 100) : 0;
+  $('stat-cache').innerHTML = `${hitRate.toFixed(1)}<span class="unit">%</span>`;
+  $('stat-cache-sub').textContent = `${fmtNum(t.cache_hits ?? 0)} hits total`;
+
+  // Cache panel
+  $('cache-hits').textContent     = fmtNum(t.cache_hits ?? 0);
+  $('cache-exact').textContent    = fmtNum(t.cache_exact_hits ?? 0);
+  $('cache-semantic').textContent = fmtNum(t.cache_semantic_hits ?? 0);
+
+  // Aggregate flat breakdown[] → per-provider and per-tier maps
+  const breakdown = data.breakdown || [];
+
+  const providerMap = {};
+  const tierMap = {};
+  for (const row of breakdown) {
+    const p = row.provider;
+    const r = row.count || 0;
+    providerMap[p] = (providerMap[p] || 0) + r;
+
+    const tier = row.routing_tier;
+    if (tier) tierMap[tier] = (tierMap[tier] || 0) + r;
+  }
+
+  const byProvider = Object.entries(providerMap).map(([provider, requests]) => ({ provider, requests }))
+    .sort((a, b) => b.requests - a.requests);
+
+  const tierOrder = ['small', 'medium', 'large'];
+  const byTier = Object.entries(tierMap).map(([routing_tier, requests]) => ({ routing_tier, requests }))
+    .sort((a, b) => tierOrder.indexOf(a.routing_tier) - tierOrder.indexOf(b.routing_tier));
+
+  renderProviders(byProvider, reqs);
+  renderTiers(byTier, reqs);
+  
+  if (data.models) renderModels(data.models, reqs);
+  if (data.compression) {
+    const comp = data.compression;
+    $('comp-ratio').textContent = comp.avg_ratio ? comp.avg_ratio.toFixed(2) + 'x' : '–';
+    $('comp-max').textContent   = comp.max_ratio ? comp.max_ratio.toFixed(2) + 'x' : '–';
+    $('comp-orig').textContent  = fmtNum(comp.total_original || 0);
+    $('comp-comp').textContent  = fmtNum(comp.total_compressed || 0);
+  }
+
+  $('last-updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+}
+
+/* ── Render: providers ───────────────────────────────────────────────── */
+function renderProviders(list, total) {
+  const html = (() => {
+    if (!list.length) return '<div class="empty">No data yet</div>';
+    const maxReqs = Math.max(...list.map(p => p.requests || 0), 1);
+    return list.slice(0, 8).map(p => {
+      const pct    = ((p.requests || 0) / maxReqs * 100).toFixed(0);
+      const reqPct = total > 0 ? ((p.requests || 0) / total * 100).toFixed(1) : '0.0';
+      return `
+      <div class="provider-row" data-provider="${p.provider ? escHtml(p.provider) : ''}">
+        <span class="provider-name">${escHtml(p.provider)}</span>
+        <div class="provider-bar-wrap"><div class="provider-bar" style="width:${pct}%"></div></div>
+        <span class="provider-count" style="width: 120px; text-align: right; padding-right: 16px;">${fmtNum(p.requests || 0)}</span>
+        <div style="width: 80px; text-align: right;"><span class="badge badge-mono">${reqPct}%</span></div>
+      </div>`;
+    }).join('');
+  })();
+
+  const el1 = $('provider-list'); // Only used in older markup if kept
+  const el2 = $('provider-list-routes');
+  if (el1) el1.innerHTML = html;
+  if (el2) el2.innerHTML = html;
+}
+
+/* ── Render: models ──────────────────────────────────────────────────── */
+function renderModels(list, total) {
+  const html = (() => {
+    if (!list.length) return '<div class="empty">No data yet</div>';
+    const maxReqs = Math.max(...list.map(p => p.count || 0), 1);
+    return list.slice(0, 5).map(p => {
+      const pct    = ((p.count || 0) / maxReqs * 100).toFixed(0);
+      const reqPct = total > 0 ? ((p.count || 0) / total * 100).toFixed(1) : '0.0';
+      return `
+      <div class="provider-row model-row" data-model="${escHtml(p.model || 'Unknown')}">
+        <span class="provider-name" style="min-width:140px; font-size:0.75rem;">${escHtml(truncate(p.model || 'Unknown', 22))}</span>
+        <div class="provider-bar-wrap"><div class="provider-bar" style="width:${pct}%"></div></div>
+        <span class="provider-count" style="width: 80px; text-align: right; padding-right: 16px;">${fmtNum(p.count || 0)}</span>
+        <div style="width: 50px; text-align: right;"><span class="badge badge-mono">${reqPct}%</span></div>
+      </div>`;
+    }).join('');
+  })();
+
+  const el = $('model-list');
+  if (el) el.innerHTML = html;
+}
+
+/* ── Render: tiers ───────────────────────────────────────────────────── */
+const TIER_META = {
+  small:  { label: 'Small',  desc: 'Simple queries · high savings',  badge: 'badge-green', icon: '🌱' },
+  medium: { label: 'Medium', desc: 'Moderate complexity',            badge: 'badge-amber', icon: '⚡' },
+  large:  { label: 'Large',  desc: 'Complex tasks · baseline',       badge: 'badge-red',   icon: '🔥' },
+};
+
+function renderTiers(list, total) {
+  const el = $('tier-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty">No data yet</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(t => {
+    const meta = TIER_META[t.routing_tier] || { label: t.routing_tier, desc: '', badge: 'badge-mono', icon: '●' };
+    const pct = total > 0 ? ((t.requests || 0) / total * 100).toFixed(1) : '0.0';
+    return `
+    <div class="tier-row" data-tier="${t.routing_tier}">
+      <div class="tier-badge">
+        <span class="badge ${meta.badge}">${meta.icon} ${meta.label}</span>
+      </div>
+      <div class="tier-info">
+        <div class="tier-label">${meta.label} Tier</div>
+        <div class="tier-desc">${meta.desc}</div>
+      </div>
+      <div class="tier-stat">
+        <div class="tier-count">${fmtNum(t.requests || 0)}</div>
+        <div class="tier-pct">${pct}%</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Render: chart ───────────────────────────────────────────────────── */
+function renderChart(data, period) {
+  const labels   = data.map(d => {
+    let t = d.bucket || d.ts || '';
+    if (period === '1d' && t) {
+      const date = new Date(t.replace(' ', 'T'));
+      if (!isNaN(date)) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const min = String(date.getMinutes()).padStart(2, '0');
+        const ss = String(date.getSeconds()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+      }
+    }
+    return t;
+  });
+  const savings  = data.map(d => +(d.savings_g || 0).toFixed(4));
+  const carbon   = data.map(d => +(d.carbon_g  || 0).toFixed(4));
+
+  const ctx = $('chart-timeseries').getContext('2d');
+
+  if (tsChart) {
+    tsChart.data.labels        = labels;
+    tsChart.data.datasets[0].data = savings;
+    tsChart.data.datasets[1].data = carbon;
+    tsChart.update('active');
+    return;
+  }
+
+  tsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'CO₂ Saved (g)',
+          data: savings,
+          backgroundColor: 'rgba(34,197,94,0.7)',
+          borderColor: 'rgba(34,197,94,0.9)',
+          borderWidth: 0,
+          borderRadius: 3,
+          borderSkipped: false,
+        },
+        {
+          label: 'CO₂ Emitted (g)',
+          data: carbon,
+          backgroundColor: 'rgba(255,255,255,0.06)',
+          borderColor: 'rgba(255,255,255,0.12)',
+          borderWidth: 1,
+          borderRadius: 3,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: {
+            color: '#666',
+            font: { family: "'IBM Plex Mono', monospace", size: 11 },
+            boxWidth: 10,
+            boxHeight: 10,
+            padding: 16,
+          },
+        },
+        tooltip: {
+          backgroundColor: '#181818',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#f0f0f0',
+          bodyColor: '#888',
+          padding: 10,
+          cornerRadius: 8,
+          titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
+          bodyFont:  { family: "'JetBrains Mono', monospace", size: 11 },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#555', font: { family: "'IBM Plex Mono', monospace", size: 10 } },
+          grid:  { display: false },
+          border: { color: '#222' },
+        },
+        y: {
+          ticks: { color: '#555', font: { family: "'IBM Plex Mono', monospace", size: 10 }, maxTicksLimit: 5 },
+          grid:  { color: '#1a1a1a' },
+          border: { display: false, dash: [4, 4] },
+        },
+      },
+    },
+  });
+}
+
+/* ── Render: feed ────────────────────────────────────────────────────── */
+function addFeedRow(data) {
+  feedRows.unshift(data);
+  if (feedRows.length > MAX_FEED) feedRows.pop();
+  renderFeed();
+  $('feed-count').textContent = `${feedRows.length} req`;
+}
+
+function renderFeed() {
+  const tbody = $('feed-body');
+  if (!feedRows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">Waiting for requests…</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = feedRows.map((r, i) => {
+    const tier      = r.routing_tier || r.tier || '–';
+    const savedStr  = r.savings_g != null ? fmtCarbon(r.savings_g) : '–';
+    const latency   = r.latency_ms != null ? r.latency_ms : '–';
+    const tierClass = tier === 'small' ? 'badge-green' : tier === 'medium' ? 'badge-amber' : tier === 'large' ? 'badge-red' : 'badge-mono';
+    const cacheHit  = r.cache_hit || r.cache_tier;
+    const isNew     = i === 0 ? 'fade-in-row' : '';
+    const ts        = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : '–';
+
+    return `<tr class="${isNew}" onclick="openModal(${i})" style="cursor:pointer">
+      <td style="color:var(--text-muted);font-size:0.7rem;">${ts}</td>
+      <td class="provider-cell">${escHtml(r.provider || '–')}</td>
+      <td class="model-cell">${escHtml(truncate(r.model || '–', 26))}</td>
+      <td>${cacheHit ? '<span class="badge badge-blue">cache</span>' : `<span class="badge ${tierClass}">${tier}</span>`}</td>
+      <td>${fmtNum(r.tokens_in || 0)}</td>
+      <td>${fmtNum(r.tokens_out || 0)}</td>
+      <td style="color:var(--accent);font-size:0.75rem;">${savedStr}</td>
+      <td>${latency}</td>
+    </tr>`;
+  }).join('');
+}
+
+function openModal(index) {
+  const r = feedRows[index];
+  if (!r) return;
+
+  const ts = r.timestamp ? new Date(r.timestamp).toLocaleString() : '–';
+  const tier = r.routing_tier || r.tier || '–';
+  const savedStr = r.savings_g != null ? fmtCarbon(r.savings_g) : '–';
+  const cacheHit = r.cache_hit || r.cache_tier;
+
+  const ratioStr = (r.compressed_tokens && r.compressed_tokens > 0 && r.original_tokens)
+    ? (r.original_tokens / r.compressed_tokens).toFixed(2) + 'x'
+    : '–';
+
+  $('modal-table-data').innerHTML = `
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Time:</span> <br/>${ts}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Provider:</span> <br/>${escHtml(r.provider || '–')}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Model:</span> <br/>${escHtml(r.model || '–')}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Tier:</span> <br/>${cacheHit ? 'cache' : tier}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Tokens In:</span> <br/>${fmtNum(r.tokens_in || 0)}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Tokens Out:</span> <br/>${fmtNum(r.tokens_out || 0)}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">CO₂ Saved:</span> <br/>${savedStr}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Latency:</span> <br/>${r.latency_ms != null ? r.latency_ms + ' ms' : '–'}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Compression Model:</span> <br/>${r.compression_model || '–'}</div>
+    <div><span style="color:var(--text-muted);font-size:0.75rem;">Compression Ratio:</span> <br/>${ratioStr}</div>
+  `;
+
+  try {
+    const orig = r.original_prompt ? JSON.parse(r.original_prompt) : null;
+    $('modal-original').textContent = orig ? JSON.stringify(orig, null, 2) : '–';
+  } catch {
+    $('modal-original').textContent = r.original_prompt || '–';
+  }
+
+  try {
+    const comp = r.compressed_prompt ? JSON.parse(r.compressed_prompt) : null;
+    $('modal-compressed').textContent = comp ? JSON.stringify(comp, null, 2) : '–';
+  } catch {
+    $('modal-compressed').textContent = r.compressed_prompt || '–';
+  }
+
+  const modal = $('log-modal');
+  modal.style.display = 'flex';
+}
+
+/* ── Period tabs ─────────────────────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    chartPeriod = btn.dataset.period;
+    fetchTimeseries(chartPeriod);
+  });
+});
+
+/* ── Refresh button ──────────────────────────────────────────────────── */
+$('refresh-btn').addEventListener('click', () => {
+  fetchAll();
+  toast('Refreshed', '↻');
+});
+
+/* ── Utility ─────────────────────────────────────────────────────────── */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function truncate(s, n) {
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+/* ── Hash Router ─────────────────────────────────────────────────────── */
+const PAGES = ['dashboard', 'logs', 'routes'];
+
+function navigate(hash) {
+  const page = PAGES.includes(hash) ? hash : 'dashboard';
+
+  PAGES.forEach(p => {
+    const el = document.getElementById('page-' + p);
+    if (el) el.classList.toggle('active-page', p === page);
+  });
+
+  document.querySelectorAll('#nav-links a').forEach(a => {
+    a.classList.toggle('active', a.dataset.page === page);
+  });
+
+  // Re-render chart if switching to dashboard (Chart.js needs visible canvas)
+  if (page === 'dashboard' && tsChart) {
+    requestAnimationFrame(() => tsChart.resize());
+  }
+}
+
+window.addEventListener('hashchange', () => navigate(location.hash.slice(1)));
+navigate(location.hash.slice(1) || 'dashboard');
+
+/* ── Modals for Routing ───────────────────────────────────────────────────────── */
+function openTableModal(type, value) {
+  const filtered = feedRows.filter(r => {
+    if (type === 'tier') {
+      const tier = r.routing_tier || r.tier || '–';
+      return tier === value;
+    } else if (type === 'provider') {
+      return r.provider === value;
+    } else if (type === 'model') {
+      return r.model === value;
+    }
+  });
+
+  const titleMap = {
+    tier: `Requests for ${value} Tier`,
+    provider: `Requests for ${value}`,
+    model: `Requests for Model ${value}`
+  };
+  $('table-modal-title').textContent = titleMap[type] || 'Requests';
+
+  const tbody = $('table-modal-body');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No recent requests found.</td></tr>';
+  } else {
+    tbody.innerHTML = filtered.map((r) => {
+      const originalIndex = feedRows.indexOf(r);
+      const tier      = r.routing_tier || r.tier || '–';
+      const savedStr  = r.savings_g != null ? fmtCarbon(r.savings_g) : '–';
+      const latency   = r.latency_ms != null ? r.latency_ms : '–';
+      const tierClass = tier === 'small' ? 'badge-green' : tier === 'medium' ? 'badge-amber' : tier === 'large' ? 'badge-red' : 'badge-mono';
+      const cacheHit  = r.cache_hit || r.cache_tier;
+      const ts        = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : '–';
+
+      return `<tr onclick="openModal(${originalIndex})" style="cursor:pointer">
+        <td style="color:var(--text-muted);font-size:0.7rem;">${ts}</td>
+        <td class="provider-cell">${escHtml(r.provider || '–')}</td>
+        <td class="model-cell">${escHtml(truncate(r.model || '–', 26))}</td>
+        <td>${cacheHit ? '<span class="badge badge-blue">cache</span>' : `<span class="badge ${tierClass}">${tier}</span>`}</td>
+        <td>${fmtNum(r.tokens_in || 0)}</td>
+        <td>${fmtNum(r.tokens_out || 0)}</td>
+        <td style="color:var(--accent);font-size:0.75rem;">${savedStr}</td>
+        <td>${latency}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  $('table-modal').style.display = 'flex';
+}
+
+document.addEventListener('click', e => {
+  const routingPage = document.getElementById('page-routes');
+  if (!routingPage || !routingPage.classList.contains('active-page')) return;
+
+  const tierRow = e.target.closest('#page-routes .tier-row');
+  if (tierRow) {
+    const tier = tierRow.getAttribute('data-tier');
+    if (tier) openTableModal('tier', tier);
+  }
+
+  const providerRow = e.target.closest('#page-routes .provider-row');
+  if (providerRow) {
+    const provider = providerRow.getAttribute('data-provider');
+    if (provider) openTableModal('provider', provider);
+  }
+
+  const modelRow = e.target.closest('.model-row');
+  if (modelRow) {
+    const model = modelRow.getAttribute('data-model');
+    if (model) openTableModal('model', model);
+  }
+});
+
+/* ── Stat Card Cursor Tracking ───────────────────────────────────────── */
+document.querySelectorAll('.stat-card').forEach(card => {
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--x', `${x}px`);
+    card.style.setProperty('--y', `${y}px`);
+  });
+});
+
+/* ── Bootstrap ───────────────────────────────────────────────────────── */
+function fetchAll() {
+  fetchStats();
+  fetchTimeseries(chartPeriod);
+  fetchLogs();
+}
+
+// Initial load
+fetchAll();
+
+// Poll every 30s as fallback
+setInterval(fetchAll, 30_000);
+
+// Update timestamps in feed every 30s
+setInterval(() => { if (feedRows.length) renderFeed(); }, 30_000);
+
+// Connect WebSocket
+connectWs();
+
+/* ── Theme toggle ─────────────────────────────────────────────────────── */
+(function() {
+  const html = document.documentElement;
+  const btn  = $('theme-toggle');
+  const saved = localStorage.getItem('eg-theme') || 'dark';
+
+  function apply(theme) {
+    if (theme === 'light') {
+      html.setAttribute('data-theme', 'light');
+      btn.textContent = '☾';
+      btn.title = 'Switch to dark mode';
+    } else {
+      html.removeAttribute('data-theme');
+      btn.textContent = '☀︎';
+      btn.title = 'Switch to light mode';
+    }
+    localStorage.setItem('eg-theme', theme);
+  }
+
+  apply(saved);
+
+  btn.addEventListener('click', () => {
+    apply(html.hasAttribute('data-theme') ? 'dark' : 'light');
+  });
+})();
+</script>
+</body>
+</html>

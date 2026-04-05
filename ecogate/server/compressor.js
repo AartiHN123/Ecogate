@@ -139,7 +139,7 @@ async function compressUserMessage(text, timeoutMs) {
 async function compressPrompt(messages) {
   // Disabled via env
   if ((process.env.COMPRESSOR_ENABLED || 'true').toLowerCase() === 'false') {
-    return { compressed_messages: messages, original_tokens: 0, compressed_tokens: 0, savings_pct: 0, skipped: true, reason: 'disabled' };
+    return { compressed_messages: messages, original_tokens: 0, compressed_tokens: 0, savings_pct: 0, skipped: true, reason: 'disabled', compression_model: null };
   }
 
   // Count tokens in user messages only
@@ -157,6 +157,7 @@ async function compressPrompt(messages) {
       savings_pct:         0,
       skipped:             true,
       reason:              'below_threshold',
+      compression_model:   null,
     };
   }
 
@@ -189,6 +190,7 @@ async function compressPrompt(messages) {
     savings_pct:         savingsPct,
     skipped:             false,
     reason:              'compressed',
+    compression_model:   process.env.COMPRESSOR_MODEL || 'gemma4:e4b',
   };
 }
 
