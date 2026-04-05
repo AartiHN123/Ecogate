@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-base: #0a0f0d;
+    --color-bg-surface: #111714;
+    --color-bg-elevated: #162019;
+    --color-bg-card: rgba(22, 32, 25, 0.8);
+    --color-border: rgba(74, 222, 128, 0.12);
+    --color-border-hover: rgba(74, 222, 128, 0.28);
+    --color-text-primary: #e8f5e9;
+    --color-text-secondary: #86a892;
+    --color-text-muted: #4a6555;
+    --color-accent: #4ade80;
+    --color-accent-dim: #22c55e;
+    --color-danger: #f87171;
+    --color-warning: #fbbf24;
+  }
+
+  .light {
+    --color-bg-base: #f0fdf4;
+    --color-bg-surface: #ffffff;
+    --color-bg-elevated: #dcfce7;
+    --color-bg-card: rgba(255, 255, 255, 0.9);
+    --color-border: rgba(22, 163, 74, 0.15);
+    --color-border-hover: rgba(22, 163, 74, 0.35);
+    --color-text-primary: #052e16;
+    --color-text-secondary: #166534;
+    --color-text-muted: #4ade80;
+    --color-accent: #16a34a;
+    --color-accent-dim: #22c55e;
+    --color-danger: #dc2626;
+    --color-warning: #d97706;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(74, 222, 128, 0.2);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 222, 128, 0.4);
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .glass-card:hover {
+    border-color: var(--color-border-hover);
+    box-shadow: 0 0 0 1px var(--color-border-hover), 0 8px 32px rgba(74, 222, 128, 0.06);
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold tracking-tight;
+    color: var(--color-text-primary);
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-widest;
+    color: var(--color-text-secondary);
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+
+  .badge-small {
+    @apply badge;
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+  }
+
+  .badge-medium {
+    @apply badge;
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+  }
+
+  .badge-large {
+    @apply badge;
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+  }
+
+  .badge-routed {
+    @apply badge;
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+  }
+
+  .badge-bypassed {
+    @apply badge;
+    background: rgba(100, 116, 139, 0.2);
+    color: #94a3b8;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200;
+    color: var(--color-text-secondary);
+  }
+
+  .nav-link:hover {
+    background: rgba(74, 222, 128, 0.08);
+    color: var(--color-accent);
+  }
+
+  .nav-link.active {
+    background: rgba(74, 222, 128, 0.12);
+    color: var(--color-accent);
+    box-shadow: inset 2px 0 0 var(--color-accent);
+  }
+
+  .data-table {
+    @apply w-full text-sm;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .data-table th {
+    @apply py-3 px-4 text-left font-semibold uppercase tracking-wide text-xs sticky top-0;
+    background: var(--color-bg-elevated);
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .data-table td {
+    @apply py-3 px-4;
+    border-bottom: 1px solid rgba(74, 222, 128, 0.06);
+    color: var(--color-text-primary);
+  }
+
+  .data-table tr:hover td {
+    background: rgba(74, 222, 128, 0.03);
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 rounded-lg text-sm font-medium outline-none transition-all duration-200;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+  }
+
+  .input-field::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .input-field:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200;
+    background: var(--color-accent);
+    color: #052e16;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 16px rgba(74, 222, 128, 0.3);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+  }
+
+  .btn-ghost:hover {
+    color: var(--color-accent);
+    border-color: var(--color-border-hover);
+    background: rgba(74, 222, 128, 0.06);
+  }
+}
+
+/* Recharts custom styles */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(74, 222, 128, 0.08) !important;
+}
+
+.recharts-text {
+  fill: #86a892 !important;
+  font-size: 11px !important;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* Glow effect for accent elements */
+.glow-green {
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.25), 0 0 40px rgba(74, 222, 128, 0.1);
+}
+
+/* Heatmap cell styles */
+.heatmap-cell {
+  rx: 2;
+  transition: opacity 0.15s ease;
+}
+
+.heatmap-cell:hover {
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+/* Number counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.count-animate {
+  animation: countUp 0.5s ease-out forwards;
+}
