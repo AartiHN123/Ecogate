@@ -3,7 +3,7 @@
 /**
  * EcoGate Prompt Compressor
  *
- * Compresses user messages via a local Ollama instance (Qwen2.5:1.5b).
+ * Compresses user messages via a local Ollama instance (gemma4:e4b).
  * System messages are NOT compressed — they are deduplicated by SHA-256 hash
  * so identical system prompts aren't resent on every turn.
  *

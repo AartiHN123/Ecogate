@@ -56,7 +56,7 @@ function resolveModel() {
   return (
     process.env.CLASSIFIER_MODEL ||
     process.env.COMPRESSOR_MODEL ||
-    'qwen2.5:1.5b'
+    'gemma4:e4b'
   );
 }
 

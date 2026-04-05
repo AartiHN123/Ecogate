@@ -95,9 +95,9 @@ const PROVIDERS = {
     id: 'ollama',
     name: 'Ollama (local)',
     baseURL: 'http://localhost:11434/v1',
-    envKey: 'OLLAMA_BASE_URL', // not a key — used as a presence sentinel; always "enabled"
-    defaultModel: 'qwen2.5:1.5b',
-    models: ['qwen2.5:1.5b', 'llama3.2', 'gemma4:e4b', 'mistral'],
+    envKey: 'OLLAMA_BASE_URL',
+    defaultModel: 'gemma4:e4b',
+    models: ['gemma4:e4b', 'llama3.2', 'qwen2.5:1.5b', 'mistral'],
     website: 'https://ollama.com',
   },
 };

@@ -58,8 +58,8 @@ const DEFAULT_TIERS = {
   // Local Ollama — no cloud dependency.
   // Override via ROUTER_OLLAMA_SMALL / _MEDIUM / _LARGE env vars.
   ollama: {
-    small:  'qwen2.5:1.5b',
-    medium: 'llama3.2',
+    small:  'gemma4:e4b',
+    medium: 'gemma4:e4b',
     large:  'gemma4:e4b',
   },
 };
@@ -117,7 +117,7 @@ function routeModel(score, providerId, requestedModel = '', providerDefault = ''
   const model = getTierModel(providerId, tier)
     || requestedModel
     || providerDefault
-    || 'qwen2.5:1.5b'; // ultimate fallback — local Ollama model
+    || 'gemma4:e4b'; // ultimate fallback — local Ollama model
 
   return { model, tier, wasRouted: true };
 }

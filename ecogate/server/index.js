@@ -174,14 +174,14 @@ app.post('/v1/chat/completions', async (req, res) => {
   }
 
 
-  // ── 4. Build OpenAI-SDK client for this provider ─────────────────────────
+  // ── 5. Build OpenAI-SDK client for this provider ─────────────────────────
   const client = new OpenAI({
     apiKey,
     baseURL: provider.baseURL,
     defaultHeaders: provider.extraHeaders || {},
   });
 
-  // ── 5. Classify prompt complexity & compress prompt ──────────────────────
+  // ── 6. Classify prompt complexity & compress prompt ──────────────────────
   const [classification, compression] = await Promise.all([
     classifyPrompt(body.messages),
     compressPrompt(body.messages),
@@ -213,7 +213,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 
   const startTime = Date.now();
 
-  // ── 5. Forward request ───────────────────────────────────────────────────
+  // ── 7. Forward request ───────────────────────────────────────────────────
   try {
     if (isStreaming) {
       res.setHeader('Content-Type', 'text/event-stream');
