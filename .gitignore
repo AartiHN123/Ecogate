@@ -1,0 +1,67 @@
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+
+# ─── Environment & Secrets ────────────────────────────────────────────────────
+# Never commit real keys — commit .env.example instead
+.env
+.env.local
+.env.*.local
+
+# ─── SQLite Database ──────────────────────────────────────────────────────────
+# Runtime database lives next to server/index.js at server/ecogate.db
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── Vite / Build Output ──────────────────────────────────────────────────────
+dashboard/dist/
+dashboard/.vite/
+*.local
+
+# ─── Docker ───────────────────────────────────────────────────────────────────
+# Don't ignore docker-compose.yml — it's part of the project
+# But ignore any generated override files
+docker-compose.override.yml
+
+# ─── OS & Editor ──────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# JetBrains / IntelliJ
+.idea/
+*.iml
+
+# ─── Runtime / Misc ───────────────────────────────────────────────────────────
+# Optional npm cache
+.npm/
+
+# Parcel cache
+.parcel-cache/
+
+# Next.js (not used here, but safe to include)
+.next/
+
+# Storybook
+storybook-static/
