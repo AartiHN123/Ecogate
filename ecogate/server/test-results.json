@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-04-05T15:24:26.941Z",
+  "provider": "anthropic",
+  "prompt_tokens_approx": 267,
+  "direct": {
+    "latency_ms": 19096,
+    "tokens_in": 221,
+    "tokens_out": 3792,
+    "model": "claude-haiku-4-5-20251001",
+    "carbon_g_est": 1.2039
+  },
+  "ecogate": {
+    "latency_ms": 109473,
+    "tokens_in": 221,
+    "tokens_out": 8855,
+    "model": "claude-sonnet-4-6",
+    "carbon_g_est": 2.7228
+  },
+  "savings": {
+    "tokens_saved": 0,
+    "tokens_saved_pct": 0,
+    "carbon_saved_g": -1.5189,
+    "latency_delta_ms": 90377
+  }
+}

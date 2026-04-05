@@ -1,0 +1,104 @@
+{
+  "openai": {
+    "small": [
+      "gpt-5.4-mini"
+    ],
+    "medium": [
+      "gpt-5.4-nano",
+      "gpt-5.4",
+      "gpt-3.5-turbo"
+    ],
+    "large": [],
+    "fetchedAt": "2026-04-05T15:30:25.642Z",
+    "source": "static"
+  },
+  "google": {
+    "small": [
+      "gemini-3.1-flash-lite-preview",
+      "gemini-3.1-pro-preview",
+      "gemini-2.0-flash",
+      "gemini-2.0-pro"
+    ],
+    "medium": [],
+    "large": [],
+    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "source": "static"
+  },
+  "groq": {
+    "small": [
+      "llama-3.1-8b-instant",
+      "mixtral-8x7b-32768",
+      "gemma2-9b-it"
+    ],
+    "medium": [],
+    "large": [
+      "llama-3.1-70b-versatile"
+    ],
+    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "source": "static"
+  },
+  "mistral": {
+    "small": [
+      "ministral-8b-2410",
+      "open-mistral-7b"
+    ],
+    "medium": [
+      "mistral-medium-latest"
+    ],
+    "large": [
+      "mistral-large-latest"
+    ],
+    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "source": "static"
+  },
+  "together": {
+    "small": [
+      "meta-llama/Llama-3-8b-chat-hf",
+      "mistralai/Mistral-7B-Instruct-v0.3"
+    ],
+    "medium": [],
+    "large": [
+      "meta-llama/Llama-3-70b-chat-hf"
+    ],
+    "fetchedAt": "2026-04-05T15:30:25.643Z",
+    "source": "static"
+  },
+  "ollama": {
+    "small": [],
+    "medium": [
+      "qwen3.5:2b"
+    ],
+    "large": [],
+    "fetchedAt": "2026-04-05T15:30:25.722Z",
+    "source": "live"
+  },
+  "anthropic": {
+    "small": [
+      "claude-haiku-4-5-20251001"
+    ],
+    "medium": [
+      "claude-sonnet-4-6"
+    ],
+    "large": [
+      "claude-opus-4-6"
+    ],
+    "fetchedAt": "2026-04-05T15:30:25.971Z",
+    "source": "static"
+  },
+  "zai": {
+    "small": [
+      "glm-4.5-air"
+    ],
+    "medium": [
+      "glm-4.5",
+      "glm-4.6",
+      "glm-4.7",
+      "glm-5",
+      "glm-5-turbo",
+      "glm-5.1"
+    ],
+    "large": [],
+    "fetchedAt": "2026-04-05T15:30:26.149Z",
+    "source": "live"
+  }
+}
