@@ -43,8 +43,55 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'EcoGate Proxy', version: '0.1.0', ws_clients: clientCount() });
 });
 
-// ─── Dashboard ─────────────────────────────────────────────────────────────
+// ─── GET / — CLI metrics (curl http://localhost:<PORT>/) ──────────────────
+// Returns a plain-text ASCII table of the latest EcoGate stats.
+// Designed for terminal viewing: curl http://localhost:3000/
 app.get('/', (_req, res) => {
+  const { totals, models, compression } = getStats();
+  const t = totals || {};
+  const topModel = (models || [])[0];
+
+  const pad  = (s, n) => String(s).padEnd(n);
+  const rpad = (s, n) => String(s).padStart(n);
+  const fmt4 = (n) => (Number(n) || 0).toFixed(4);
+  const fmtN = (n) => (Number(n) || 0).toLocaleString();
+
+  const W = 54;
+  const bar  = '═'.repeat(W);
+  const dash = '─'.repeat(W);
+
+  const lines = [
+    '',
+    `  ╔${bar}╗`,
+    `  ║${' EcoGate  —  Live Metrics'.padEnd(W)}║`,
+    `  ╠${bar}╣`,
+    `  ║  ${pad('Metric', 28)}${rpad('Value', W - 30)}  ║`,
+    `  ╠${dash}╣`,
+    `  ║  ${pad('Total Requests', 28)}${rpad(fmtN(t.total_requests), W - 30)}  ║`,
+    `  ║  ${pad('Tokens In', 28)}${rpad(fmtN(t.total_tokens_in), W - 30)}  ║`,
+    `  ║  ${pad('Tokens Out', 28)}${rpad(fmtN(t.total_tokens_out), W - 30)}  ║`,
+    `  ║  ${pad('Avg Latency (ms)', 28)}${rpad(Math.round(t.avg_latency_ms || 0), W - 30)}  ║`,
+    `  ╠${dash}╣`,
+    `  ║  ${pad('Carbon Used (g CO₂e)', 28)}${rpad(fmt4(t.total_carbon_g), W - 30)}  ║`,
+    `  ║  ${pad('Baseline Carbon (g CO₂e)', 28)}${rpad(fmt4(t.total_baseline_carbon_g), W - 30)}  ║`,
+    `  ║  ${pad('Carbon Saved (g CO₂e)', 28)}${rpad(fmt4(t.total_savings_g), W - 30)}  ║`,
+    `  ║  ${pad('Savings %', 28)}${rpad((t.savings_pct || 0) + '%', W - 30)}  ║`,
+    `  ╠${dash}╣`,
+    `  ║  ${pad('Compression Avg Ratio', 28)}${rpad(compression ? (Number(compression.avg_ratio) || 0).toFixed(2) + 'x' : 'n/a', W - 30)}  ║`,
+    `  ║  ${pad('Top Model', 28)}${rpad(topModel ? topModel.model : 'n/a', W - 30)}  ║`,
+    `  ╠${dash}╣`,
+    `  ║  ${pad('Dashboard UI', 28)}${rpad('GET /frontend', W - 30)}  ║`,
+    `  ║  ${pad('API Proxy', 28)}${rpad('POST /v1/chat/completions', W - 30)}  ║`,
+    `  ╚${bar}╝`,
+    '',
+  ];
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(lines.join('\n'));
+});
+
+// ─── GET /frontend — Browser dashboard ─────────────────────────────────────
+app.get('/frontend', (_req, res) => {
   res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
@@ -55,7 +102,7 @@ app.get('/', (_req, res) => {
 //
 // Example response:
 // [
-//   { id: "openai", name: "OpenAI", defaultModel: "gpt-4o-mini", enabled: true, ... },
+//   { id: "openai", name: "OpenAI", defaultModel: "gpt-5.4-nano", enabled: true, ... },
 //   { id: "anthropic", name: "Anthropic", ..., enabled: false },
 //   ...
 // ]
@@ -430,14 +477,14 @@ server.listen(PORT, () => {
   ██╔══╝  ██║     ██║   ██║██║   ██║██╔══██║   ██║   ██╔══╝  
   ███████╗╚██████╗╚██████╔╝╚██████╔╝██║  ██║   ██║   ███████╗
   ╚══════╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝
-  
-  🌿 EcoGate Proxy Server  v0.1.0
-  ✅ Listening on:    http://localhost:${PORT}
-  🔌 WebSocket at:   ws://localhost:${PORT}/ws
-  🔁 POST /v1/chat/completions  (add header: X-EcoGate-Provider: <id>)
-  📋 GET  /v1/providers
-  📡 GET  /health
-  
+
+  🌿 EcoGate Proxy is live!  🚀
+  ✅ API Proxy:        http://localhost:${PORT}/v1
+  📊 Terminal metrics: curl http://localhost:${PORT}/
+  🖥️  Dashboard UI:   http://localhost:${PORT}/frontend
+  🔌 WebSocket:        ws://localhost:${PORT}/ws
+  📡 Health:           GET /health
+
   🔑 Active providers: ${enabledProviders.length ? enabledProviders.join(', ') : 'none — add API keys to .env'}
   `);
 });

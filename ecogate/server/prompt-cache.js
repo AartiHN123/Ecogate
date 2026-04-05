@@ -114,7 +114,7 @@ function getExpiresAt() {
 }
 
 // ─── Ollama embedding ──────────────────────────────────────────────────────
-const OLLAMA_BASE = (process.env.COMPRESSOR_URL || 'http://localhost:11434').replace('/v1', '');
+const OLLAMA_BASE = (process.env.COMPRESSOR_URL || 'http://localhost:11434').replace('/api', '');
 const EMBED_MODEL = process.env.CACHE_EMBEDDING_MODEL || 'nomic-embed-text';
 
 async function getEmbedding(text) {

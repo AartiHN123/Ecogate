@@ -56,7 +56,7 @@ const LARGE_PATTERNS = [
   /plus/,         // glm-4-plus
   /70b/,
   /\b4-turbo\b/,
-  /gpt-4(?!o)/,   // gpt-4 but NOT gpt-4o
+  /gpt-4(?!o)/,   // gpt-4 but NOT gpt-5.4-mini
 ];
 
 // Everything that matches neither goes to medium.
@@ -192,7 +192,7 @@ function pickModel(providerId, score) {
   }
 
   // Last resort: provider's hardcoded default
-  return provider?.defaultModel || 'gpt-4o-mini';
+  return provider?.defaultModel || 'gpt-5.4-nano';
 }
 
 /**

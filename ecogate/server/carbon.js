@@ -16,9 +16,10 @@ const MODELS = require('./models.json');
 
 // ─── Fallback carbon factors (gCO2 per 1k tokens) ───────────────────────────
 const TIER_FACTORS = {
-  small:  MODELS.carbonFactors.small_model,   // 0.02
-  medium: MODELS.carbonFactors.medium_model,  // 0.15
-  large:  MODELS.carbonFactors.large_model,   // 0.45
+  small:  MODELS.carbonFactors.small_model,     // 0.30
+  medium: MODELS.carbonFactors.medium_model,    // 0.35
+  large:  MODELS.carbonFactors.large_model,     // 17.80
+  reasoning: MODELS.carbonFactors.reasoning_model, // 17.50
 };
 const DEFAULT_FACTOR = TIER_FACTORS.medium; // safe fallback
 
@@ -26,7 +27,7 @@ const DEFAULT_FACTOR = TIER_FACTORS.medium; // safe fallback
  * Look up the carbon factor for a model.
  * Priority: models.json exact match → tier fallback → default.
  *
- * @param {string} modelName   e.g. 'gpt-4o-mini'
+ * @param {string} modelName   e.g. 'gpt-5.4-nano'
  * @param {string} providerId  e.g. 'openai'
  * @returns {number} gCO2 per 1,000 tokens
  */
@@ -67,7 +68,7 @@ function getLargeModelFactor(providerId) {
   if (provider?.tiers?.large) {
     return getCarbonFactor(provider.tiers.large, providerId);
   }
-  return TIER_FACTORS.large; // 0.45
+  return TIER_FACTORS.large; // 17.80
 }
 
 /**

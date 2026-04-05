@@ -17,8 +17,8 @@ const PROVIDERS = {
     name: 'OpenAI',
     baseURL: 'https://api.openai.com/v1',
     envKey: 'OPENAI_API_KEY',
-    defaultModel: 'gpt-4o-mini',
-    models: ['gpt-4o-mini', 'gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    defaultModel: 'gpt-5.4-nano',
+    models: ['gpt-5.4-nano', 'gpt-5.4-mini', 'gpt-5.4', 'gpt-3.5-turbo'],
     website: 'https://platform.openai.com',
   },
 
@@ -29,8 +29,8 @@ const PROVIDERS = {
     // anthropic-beta header to enable the compatibility layer.
     baseURL: 'https://api.anthropic.com/v1',
     envKey: 'ANTHROPIC_API_KEY',
-    defaultModel: 'claude-3-haiku-20240307',
-    models: ['claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229'],
+    defaultModel: 'claude-haiku-4-5-20251001',
+    models: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-6'],
     website: 'https://console.anthropic.com',
     // Required headers for Anthropic's OpenAI-compat layer
     extraHeaders: {
@@ -43,21 +43,21 @@ const PROVIDERS = {
     id: 'google',
     name: 'Google Gemini',
     // Google's official OpenAI-compatible endpoint
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
     envKey: 'GOOGLE_API_KEY',
-    defaultModel: 'gemini-1.5-flash',
-    models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro'],
+    defaultModel: 'gemini-3.1-flash-lite-preview',
+    models: ['gemini-3.1-flash-lite-preview', 'gemini-3.1-pro-preview', 'gemini-2.0-flash', 'gemini-2.0-pro'],
     website: 'https://aistudio.google.com',
   },
 
   zai: {
     id: 'zai',
     name: 'Z.AI (GLM)',
-    // Zhipu AI — OpenAI-compatible endpoint
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4/',
+    // Z.AI global endpoint — works outside China Mainland
+    baseURL: 'https://api.z.ai/api/paas/v4',
     envKey: 'ZAI_API_KEY',
-    defaultModel: 'glm-4-flash',
-    models: ['glm-4-flash', 'glm-4-air', 'glm-4', 'glm-4-plus'],
+    defaultModel: 'glm-4.6',
+    models: ['glm-4.6', 'glm-4.7', 'glm-5-turbo', 'glm-4-32b-0414-128k'],
     website: 'https://open.bigmodel.cn',
   },
 
@@ -76,8 +76,8 @@ const PROVIDERS = {
     name: 'Mistral AI',
     baseURL: 'https://api.mistral.ai/v1',
     envKey: 'MISTRAL_API_KEY',
-    defaultModel: 'mistral-small-latest',
-    models: ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest', 'open-mistral-7b'],
+    defaultModel: 'ministral-8b-2410',
+    models: ['ministral-8b-2410', 'mistral-medium-latest', 'mistral-large-latest', 'open-mistral-7b'],
     website: 'https://console.mistral.ai',
   },
 
@@ -94,10 +94,10 @@ const PROVIDERS = {
   ollama: {
     id: 'ollama',
     name: 'Ollama (local)',
-    baseURL: 'http://localhost:11434/v1',
+    baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
     envKey: 'OLLAMA_BASE_URL',
-    defaultModel: 'gemma4:e4b',
-    models: ['gemma4:e4b', 'llama3.2', 'qwen2.5:1.5b', 'mistral'],
+    defaultModel: 'qwen3.5:2b',
+    models: ['qwen3.5:2b', 'llama3.2', 'mistral', 'qwen2.5:1.5b'],
     website: 'https://ollama.com',
   },
 };

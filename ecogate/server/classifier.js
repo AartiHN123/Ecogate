@@ -10,7 +10,7 @@
  * endpoint so no API keys are needed.
  *
  * Config (env vars):
- *   CLASSIFIER_URL    — Ollama base URL  (default: http://localhost:11434/v1)
+ *   CLASSIFIER_URL    — Ollama base URL  (default: http://localhost:11434/api)
  *   CLASSIFIER_MODEL  — Ollama model     (default: same model as COMPRESSOR_MODEL / qwen2.5:1.5b)
  *
  * Score rubric:
@@ -46,7 +46,7 @@ function getClient() {
   if (!_client) {
     _client = new OpenAI({
       apiKey:  'ollama', // Ollama ignores this but the SDK requires a non-empty value
-      baseURL: process.env.CLASSIFIER_URL || 'http://localhost:11434/v1',
+      baseURL: process.env.CLASSIFIER_URL || 'http://localhost:11434/api',
     });
   }
   return _client;
@@ -56,7 +56,7 @@ function resolveModel() {
   return (
     process.env.CLASSIFIER_MODEL ||
     process.env.COMPRESSOR_MODEL ||
-    'gemma4:e4b'
+    'qwen3.5:2b'
   );
 }
 

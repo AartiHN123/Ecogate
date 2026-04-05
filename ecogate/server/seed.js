@@ -73,11 +73,11 @@ const PROVIDERS = [
 ];
 
 const TIER_MODELS = {
-  openai:    { small: 'gpt-4o-mini',             medium: 'gpt-4o',                    large: 'gpt-4-turbo' },
-  anthropic: { small: 'claude-3-haiku-20240307', medium: 'claude-3-5-sonnet-20241022', large: 'claude-3-opus-20240229' },
-  google:    { small: 'gemini-1.5-flash',        medium: 'gemini-1.5-pro',            large: 'gemini-1.5-pro' },
+  openai:    { small: 'gpt-5.4-nano',             medium: 'gpt-5.4-mini',                    large: 'gpt-5.4' },
+  anthropic: { small: 'claude-haiku-4-5-20251001', medium: 'claude-sonnet-4-6', large: 'claude-opus-4-6' },
+  google:    { small: 'gemini-3.1-flash-lite-preview',        medium: 'gemini-3.1-pro-preview',            large: 'gemini-3.1-pro-preview' },
   groq:      { small: 'llama-3.1-8b-instant',   medium: 'llama-3.1-70b-versatile',   large: 'llama-3.1-70b-versatile' },
-  mistral:   { small: 'mistral-small-latest',    medium: 'mistral-medium-latest',     large: 'mistral-large-latest' },
+  mistral:   { small: 'ministral-8b-2410',    medium: 'mistral-medium-latest',     large: 'mistral-large-latest' },
 };
 
 const CARBON_FACTORS = { small: 0.02, medium: 0.15, large: 0.45 };

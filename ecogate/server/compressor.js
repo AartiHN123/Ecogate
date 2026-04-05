@@ -3,18 +3,22 @@
 /**
  * EcoGate Prompt Compressor
  *
- * Compresses user messages via a local Ollama instance (gemma4:e4b).
+ * Compresses user messages via a local Ollama instance (qwen3.5:2b).
  * System messages are NOT compressed — they are deduplicated by SHA-256 hash
  * so identical system prompts aren't resent on every turn.
  *
  * Token counting uses tiktoken (cl100k_base — works for all modern models).
  *
  * Config (env vars):
- *   COMPRESSOR_URL         — default http://localhost:11434/v1
- *   COMPRESSOR_MODEL       — default qwen2.5:1.5b
- *   COMPRESSOR_ENABLED     — default true
- *   MIN_PROMPT_TOKENS      — skip compression below this threshold (default 150)
- *   COMPRESSOR_TIMEOUT_MS  — hard timeout per call (default 500)
+ *   COMPRESSOR_URL          — default http://localhost:11434/api
+ *   COMPRESSOR_MODEL        — default qwen2.5:1.5b
+ *   COMPRESSOR_ENABLED      — default true
+ *   MIN_PROMPT_TOKENS       — skip compression below this threshold (default 150)
+ *   COMPRESSOR_TIMEOUT_MS   — hard timeout per Ollama call (default 500)
+ *   NLP_SIDECAR_URL         — NLP pre-processing sidecar endpoint
+ *                             (default http://localhost:8000/preprocess)
+ *   NLP_SIDECAR_TIMEOUT_MS  — hard timeout for sidecar call (default 2000)
+ *                             Falls back to raw text if sidecar is down/times out.
  */
 
 const crypto  = require('crypto');
@@ -64,7 +68,7 @@ function getClient() {
   if (!_client) {
     _client = new OpenAI({
       apiKey:  'ollama', // Ollama ignores the key but SDK requires one
-      baseURL: process.env.COMPRESSOR_URL || 'http://localhost:11434/v1',
+      baseURL: process.env.COMPRESSOR_URL || 'http://localhost:11434/api',
     });
   }
   return _client;
@@ -86,13 +90,67 @@ Rules:
 - Output ONLY the restructured prompt, no meta-commentary`;
 
 
+// ─── NLP Sidecar ───────────────────────────────────────────────────────────
+/**
+ * Call the NLP pre-processing sidecar.
+ * Expects a JSON body { text } and returns processed_text from the response.
+ * On timeout or any network/HTTP error, returns the original text (graceful fallback).
+ *
+ * @param {string} text  Raw user message
+ * @returns {Promise<string>} Pre-processed text, or original on failure
+ */
+async function callNlpSidecar(text) {
+  const sidecarUrl    = process.env.NLP_SIDECAR_URL || 'http://localhost:8000/preprocess';
+  const sidecarTimeout = parseInt(process.env.NLP_SIDECAR_TIMEOUT_MS || '2000', 10);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), sidecarTimeout);
+
+  try {
+    const res = await fetch(sidecarUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ text }),
+      signal:  controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      console.warn(`[Compressor] NLP sidecar returned HTTP ${res.status} — using original text`);
+      return text;
+    }
+
+    const data = await res.json();
+    const processed = data?.processed_text || data?.text;
+    if (typeof processed === 'string' && processed.trim().length > 0) {
+      return processed.trim();
+    }
+    console.warn('[Compressor] NLP sidecar returned empty/unexpected payload — using original text');
+    return text;
+  } catch (err) {
+    clearTimeout(timer);
+    if (err.name === 'AbortError') {
+      console.warn(`[Compressor] NLP sidecar timed out after ${sidecarTimeout}ms — using original text`);
+    } else {
+      console.warn(`[Compressor] NLP sidecar unreachable — using original text: ${err.message}`);
+    }
+    return text;
+  }
+}
+
 /**
  * Compress a single user message string via local Ollama.
- * Returns the original string on timeout or error.
+ * First passes the text through the NLP sidecar for pre-processing,
+ * then feeds the result into Ollama for final compression.
+ * Returns the original string on any timeout or error.
  */
 async function compressUserMessage(text, timeoutMs) {
+  // ── Step 1: NLP sidecar pre-processing ────────────────────────────────
+  const preprocessed = await callNlpSidecar(text);
+
+  // ── Step 2: Ollama compression ─────────────────────────────────────────
   const client = getClient();
-  const model  = process.env.COMPRESSOR_MODEL || 'gemma4:e4b';
+  const model  = process.env.COMPRESSOR_MODEL || 'qwen3.5:2b';
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -103,23 +161,23 @@ async function compressUserMessage(text, timeoutMs) {
         model,
         messages: [
           { role: 'system', content: COMPRESS_SYSTEM },
-          { role: 'user',   content: text },
+          { role: 'user',   content: preprocessed },
         ],
         temperature: 0,
-        max_tokens:  Math.ceil(countTokens(text) * 1.2), // can't expand beyond original
+        max_tokens:  Math.ceil(countTokens(preprocessed) * 1.2),
       },
       { signal: controller.signal }
     );
     clearTimeout(timer);
-    return resp.choices?.[0]?.message?.content?.trim() || text;
+    return resp.choices?.[0]?.message?.content?.trim() || preprocessed;
   } catch (err) {
     clearTimeout(timer);
     if (err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
-      console.warn('[Compressor] Timeout — using original message');
+      console.warn('[Compressor] Ollama timeout — using pre-processed message');
     } else {
-      console.warn(`[Compressor] Error — using original message: ${err.message}`);
+      console.warn(`[Compressor] Ollama error — using pre-processed message: ${err.message}`);
     }
-    return text;
+    return preprocessed; // still better than raw text if sidecar worked
   }
 }
 
@@ -190,7 +248,7 @@ async function compressPrompt(messages) {
     savings_pct:         savingsPct,
     skipped:             false,
     reason:              'compressed',
-    compression_model:   process.env.COMPRESSOR_MODEL || 'gemma4:e4b',
+    compression_model:   process.env.COMPRESSOR_MODEL || 'qwen3.5:2b',
   };
 }
 

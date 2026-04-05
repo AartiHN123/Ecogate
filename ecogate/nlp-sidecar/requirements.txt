@@ -1,0 +1,25 @@
+# Web server
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# NLP core
+spacy>=3.7.0
+
+# Modern coreference resolution (spaCy 3.x compatible, replaces neuralcoref)
+fastcoref>=2.1.6
+
+# Redundancy detection
+scikit-learn>=1.4.0
+
+# LLMLingua-2 (brings in torch + transformers)
+llmlingua>=0.2.2
+
+# Torch (CPU-only build to keep it lean; remove +cpu suffix if you have a GPU)
+torch>=2.2.0
+
+# Transformers (required by llmlingua-2 internals)
+transformers>=4.40.0
+
+# Misc utilities
+numpy>=1.26.0
+pydantic>=2.7.0

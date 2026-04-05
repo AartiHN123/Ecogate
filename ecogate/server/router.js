@@ -11,59 +11,57 @@
  *   large  — score 4–5   (baseline, no savings)
  *
  * Override any tier model via env vars:
- *   ROUTER_<PROVIDER_ID>_SMALL   e.g. ROUTER_OPENAI_SMALL=gpt-4o-mini
- *   ROUTER_<PROVIDER_ID>_MEDIUM  e.g. ROUTER_OPENAI_MEDIUM=gpt-4o
- *   ROUTER_<PROVIDER_ID>_LARGE   e.g. ROUTER_OPENAI_LARGE=gpt-4-turbo
+ *   ROUTER_<PROVIDER_ID>_SMALL   e.g. ROUTER_OPENAI_SMALL=gpt-5.4-nano
+ *   ROUTER_<PROVIDER_ID>_MEDIUM  e.g. ROUTER_OPENAI_MEDIUM=gpt-5.4-mini
+ *   ROUTER_<PROVIDER_ID>_LARGE   e.g. ROUTER_OPENAI_LARGE=gpt-5.4
  */
 
 // ─── Default model tiers per provider ───────────────────────────────────────
 // Keys must match provider IDs in providers.js
 const DEFAULT_TIERS = {
   openai: {
-    small:  'gpt-4o-mini',
-    medium: 'gpt-4o',
-    large:  'gpt-4-turbo',
+    small:  'gpt-5.4-nano',
+    medium: 'gpt-5.4-mini',
+    large:  'gpt-5.4',
   },
   anthropic: {
-    small:  'claude-3-haiku-20240307',
-    medium: 'claude-3-5-sonnet-20241022',
-    large:  'claude-3-opus-20240229',
+    small:  'claude-haiku-4-5-20251001',
+    medium: 'claude-sonnet-4-6',
+    large:  'claude-opus-4-6',
   },
   google: {
-    small:  'gemini-1.5-flash',
-    medium: 'gemini-1.5-pro',
-    large:  'gemini-1.5-pro',   // no larger model yet; use pro for both
+    small:  'gemini-3.1-flash-lite-preview',
+    medium: 'gemini-3.1-flash-preview',
+    large:  'gemini-3.1-pro-preview',
   },
   zai: {
-    small:  'glm-4-flash',
-    medium: 'glm-4-air',
-    large:  'glm-4-plus',
+    small:  'glm-4.5',
+    medium: 'glm-4.6V',
+    large:  'glm-5',
   },
   groq: {
     small:  'llama-3.1-8b-instant',
-    medium: 'llama-3.1-70b-versatile',
-    large:  'llama-3.1-70b-versatile', // groq's largest available
+    medium: 'openai/gpt-oss-20b',
+    large:  'openai/gpt-oss-120b',
   },
   mistral: {
-    small:  'mistral-small-latest',
-    medium: 'mistral-medium-latest',
-    large:  'mistral-large-latest',
+    small:  'ministral-8b-2410',
+    medium: 'mistral-medium-3-instruct',
+    large:  'mistral-large-3-675b-instruct-2512',
   },
   together: {
-    small:  'meta-llama/Llama-3-8b-chat-hf',
-    medium: 'meta-llama/Llama-3-70b-chat-hf',
-    large:  'meta-llama/Llama-3-70b-chat-hf',
+    small:  'openai/gpt-oss-20b',
+    medium: 'openai/gpt-oss-120b',
+    large:  'moonshotai/Kimi-K2.5',
   },
 
   // Local Ollama — no cloud dependency.
-  // Override via ROUTER_OLLAMA_SMALL / _MEDIUM / _LARGE env vars.
   ollama: {
     small:  'gemma4:e4b',
-    medium: 'gemma4:e4b',
-    large:  'gemma4:e4b',
+    medium: 'gemma4:31b',
+    large:  'deepseek-r1:671b',
   },
 };
-
 /**
  * Determine the complexity tier name from a numeric score.
  *

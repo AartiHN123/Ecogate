@@ -1227,6 +1227,11 @@ function renderChart(data, period) {
     tsChart.data.labels        = labels;
     tsChart.data.datasets[0].data = savings;
     tsChart.data.datasets[1].data = carbon;
+    
+    const isLight = document.documentElement.hasAttribute('data-theme');
+    tsChart.data.datasets[1].backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
+    tsChart.data.datasets[1].borderColor = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)';
+    
     tsChart.update('active');
     return;
   }
@@ -1239,8 +1244,8 @@ function renderChart(data, period) {
         {
           label: 'CO₂ Saved (g)',
           data: savings,
-          backgroundColor: 'rgba(34,197,94,0.7)',
-          borderColor: 'rgba(34,197,94,0.9)',
+          backgroundColor: 'rgba(34,197,94,0.9)',
+          borderColor: 'rgba(34,197,94,1.0)',
           borderWidth: 0,
           borderRadius: 3,
           borderSkipped: false,
@@ -1248,8 +1253,8 @@ function renderChart(data, period) {
         {
           label: 'CO₂ Emitted (g)',
           data: carbon,
-          backgroundColor: 'rgba(255,255,255,0.06)',
-          borderColor: 'rgba(255,255,255,0.12)',
+          backgroundColor: document.documentElement.hasAttribute('data-theme') ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
+          borderColor: document.documentElement.hasAttribute('data-theme') ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)',
           borderWidth: 1,
           borderRadius: 3,
           borderSkipped: false,
@@ -1547,6 +1552,13 @@ connectWs();
       btn.title = 'Switch to light mode';
     }
     localStorage.setItem('eg-theme', theme);
+    
+    if (typeof tsChart !== 'undefined' && tsChart) {
+      const isLight = theme === 'light';
+      tsChart.data.datasets[1].backgroundColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
+      tsChart.data.datasets[1].borderColor = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.12)';
+      tsChart.update();
+    }
   }
 
   apply(saved);
