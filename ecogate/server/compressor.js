@@ -92,7 +92,7 @@ Rules:
  */
 async function compressUserMessage(text, timeoutMs) {
   const client = getClient();
-  const model  = process.env.COMPRESSOR_MODEL || 'qwen2.5:1.5b';
+  const model  = process.env.COMPRESSOR_MODEL || 'gemma4:e4b';
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
