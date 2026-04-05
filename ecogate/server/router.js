@@ -54,6 +54,14 @@ const DEFAULT_TIERS = {
     medium: 'meta-llama/Llama-3-70b-chat-hf',
     large:  'meta-llama/Llama-3-70b-chat-hf',
   },
+
+  // Local Ollama — no cloud dependency.
+  // Override via ROUTER_OLLAMA_SMALL / _MEDIUM / _LARGE env vars.
+  ollama: {
+    small:  'qwen2.5:1.5b',
+    medium: 'llama3.2',
+    large:  'gemma4:e4b',
+  },
 };
 
 /**
@@ -109,7 +117,7 @@ function routeModel(score, providerId, requestedModel = '', providerDefault = ''
   const model = getTierModel(providerId, tier)
     || requestedModel
     || providerDefault
-    || 'gpt-4o-mini'; // ultimate fallback
+    || 'qwen2.5:1.5b'; // ultimate fallback — local Ollama model
 
   return { model, tier, wasRouted: true };
 }

@@ -25,14 +25,18 @@ const PROVIDERS = {
   anthropic: {
     id: 'anthropic',
     name: 'Anthropic',
-    // Anthropic's OpenAI-compatible endpoint (released 2024)
+    // Anthropic's OpenAI-compatible endpoint requires the /v1 path AND the
+    // anthropic-beta header to enable the compatibility layer.
     baseURL: 'https://api.anthropic.com/v1',
     envKey: 'ANTHROPIC_API_KEY',
     defaultModel: 'claude-3-haiku-20240307',
-    models: ['claude-3-haiku-20240307', 'claude-3-sonnet-20240229', 'claude-3-opus-20240229', 'claude-3-5-sonnet-20241022'],
+    models: ['claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229'],
     website: 'https://console.anthropic.com',
-    // Anthropic requires this extra header for their OpenAI-compat layer
-    extraHeaders: { 'anthropic-version': '2023-06-01' },
+    // Required headers for Anthropic's OpenAI-compat layer
+    extraHeaders: {
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'messages-2023-12-15',
+    },
   },
 
   google: {
@@ -86,6 +90,16 @@ const PROVIDERS = {
     models: ['meta-llama/Llama-3-8b-chat-hf', 'meta-llama/Llama-3-70b-chat-hf', 'mistralai/Mistral-7B-Instruct-v0.3'],
     website: 'https://api.together.ai',
   },
+
+  ollama: {
+    id: 'ollama',
+    name: 'Ollama (local)',
+    baseURL: 'http://localhost:11434/v1',
+    envKey: 'OLLAMA_BASE_URL', // not a key — used as a presence sentinel; always "enabled"
+    defaultModel: 'qwen2.5:1.5b',
+    models: ['qwen2.5:1.5b', 'llama3.2', 'gemma4:e4b', 'mistral'],
+    website: 'https://ollama.com',
+  },
 };
 
 /**
@@ -122,7 +136,8 @@ function listProviders() {
     defaultModel: p.defaultModel,
     models: p.models,
     website: p.website,
-    enabled: !!process.env[p.envKey],
+    // Ollama is always enabled (local); cloud providers need an API key
+    enabled: p.id === 'ollama' ? true : !!process.env[p.envKey],
   }));
 }
 
