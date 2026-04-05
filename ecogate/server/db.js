@@ -150,4 +150,40 @@ function getStats() {
   };
 }
 
-module.exports = { logRequest, getLogs, getStats };
+/**
+ * Return per-day (or per-hour) carbon/savings aggregates for the dashboard line chart.
+ *
+ * @param {'1d'|'7d'|'30d'} period     How far back to look (default '7d').
+ * @param {'hour'|'day'}    granularity Time bucket size (default: 'hour' for 1d, 'day' otherwise).
+ * @returns {Array<{ bucket: string, requests: number, carbon_g: number, savings_g: number, tokens: number }>}
+ */
+function getTimeseries(period = '7d', granularity) {
+  // Resolve how many hours back to query
+  const hoursBack = period === '1d' ? 24 : period === '30d' ? 720 : 168; // default 7d = 168h
+
+  // Auto-select granularity: hourly for 1d, daily for anything longer
+  const grain = granularity || (period === '1d' ? 'hour' : 'day');
+
+  // SQLite strftime format string
+  const fmt = grain === 'hour' ? '%Y-%m-%dT%H:00:00Z' : '%Y-%m-%d';
+
+  const cutoff = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
+
+  const rows = db.prepare(`
+    SELECT
+      strftime('${fmt}', timestamp)  AS bucket,
+      COUNT(*)                       AS requests,
+      ROUND(SUM(carbon_g), 6)        AS carbon_g,
+      ROUND(SUM(savings_g), 6)       AS savings_g,
+      SUM(tokens_in + tokens_out)    AS tokens
+    FROM requests
+    WHERE timestamp >= ?
+    GROUP BY bucket
+    ORDER BY bucket ASC
+  `).all(cutoff);
+
+  return rows;
+}
+
+module.exports = { logRequest, getLogs, getStats, getTimeseries };
+

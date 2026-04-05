@@ -1,0 +1,46 @@
+# .github/workflows/carbon-lint.yml
+#
+# Add this file to any repository that uses LLM APIs to automatically
+# get a Green Score on every Pull Request from CarbonLint.
+#
+# Setup:
+#   1. Add your OpenAI API key as a repository secret named OPENAI_API_KEY.
+#   2. Copy this file to .github/workflows/carbon-lint.yml in your repo.
+#   3. Done — every PR will now get a CarbonLint review comment.
+
+name: CarbonLint — Green Score
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read        # to checkout and diff the PR
+  pull-requests: write  # to post the review comment
+
+jobs:
+  carbon-lint:
+    name: Analyze LLM Usage Patterns
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so we can diff against base
+
+      - name: Generate PR diff
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git diff origin/${{ github.base_ref }}...HEAD \
+            -- '*.js' '*.ts' '*.py' '*.go' '*.rb' \
+            > $RUNNER_TEMP/pr.diff || true
+          wc -c < $RUNNER_TEMP/pr.diff
+
+      - name: Run CarbonLint
+        uses: AartiHN123/Ecogate/carbon-lint@main
+        with:
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          github_token:   ${{ secrets.GITHUB_TOKEN }}
+          model:          gpt-4o-mini
+          max_diff_chars: '12000'

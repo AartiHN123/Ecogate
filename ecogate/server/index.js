@@ -2,14 +2,16 @@
 
 require('dotenv').config();
 
+const http    = require('http');
 const express = require('express');
 const { OpenAI } = require('openai');
 const { getProvider, getApiKey, listProviders } = require('./providers');
-const { logRequest, getLogs, getStats } = require('./db');
+const { logRequest, getLogs, getStats, getTimeseries } = require('./db');
 const { startSync, getBuckets } = require('./model-sync');
-const { classifyPrompt } = require('./classifier');
-const { routeModel }     = require('./router');
+const { classifyPrompt }  = require('./classifier');
+const { routeModel }      = require('./router');
 const { calculateCarbon } = require('./carbon');
+const { createWsHub, broadcast, clientCount } = require('./ws');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -34,7 +36,7 @@ app.use((req, _res, next) => {
 
 // ─── Health check ──────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'EcoGate Proxy', version: '0.1.0' });
+  res.json({ status: 'ok', service: 'EcoGate Proxy', version: '0.1.0', ws_clients: clientCount() });
 });
 
 // ─── List available providers ──────────────────────────────────────────────
@@ -75,6 +77,23 @@ app.get('/api/logs', (req, res) => {
 // Returns aggregate totals + per-provider/model breakdown.
 app.get('/api/stats', (_req, res) => {
   res.json(getStats());
+});
+
+// ─── GET /api/stats/timeseries ───────────────────────────────────────────────
+// Returns carbon/savings/request-count grouped by time bucket.
+// Query params:
+//   ?period=7d          — lookback window: 1d | 7d | 30d  (default: 7d)
+//   ?granularity=day    — bucket size: hour | day         (default: auto)
+//
+// Example response:
+// [
+//   { bucket: "2026-04-01", requests: 42, carbon_g: 0.12, savings_g: 0.95, tokens: 18400 },
+//   ...
+// ]
+app.get('/api/stats/timeseries', (req, res) => {
+  const period      = ['1d', '7d', '30d'].includes(req.query.period) ? req.query.period : '7d';
+  const granularity = ['hour', 'day'].includes(req.query.granularity) ? req.query.granularity : undefined;
+  res.json(getTimeseries(period, granularity));
 });
 
 // ─── /v1/chat/completions ──────────────────────────────────────────────────
@@ -162,14 +181,90 @@ app.post('/v1/chat/completions', async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      const stream = await client.chat.completions.create({ ...requestBody, stream: true });
+      // Request token usage in the final stream chunk (supported by OpenAI + most compat APIs).
+      const streamReq = {
+        ...requestBody,
+        stream: true,
+        stream_options: { include_usage: true },
+      };
+
+      const stream = await client.chat.completions.create(streamReq);
+
+      let streamUsage   = null; // populated by the final chunk that carries usage
+      let actualModel   = requestBody.model;
+      let outputChars   = 0;    // fallback: count chars in delta content
 
       for await (const chunk of stream) {
+        // Some providers send a trailing chunk with usage and no choices
+        if (chunk.usage) {
+          streamUsage = chunk.usage;
+        }
+        if (chunk.model) {
+          actualModel = chunk.model;
+        }
+        // Accumulate output chars for fallback token estimation
+        const delta = chunk.choices?.[0]?.delta?.content;
+        if (delta) outputChars += delta.length;
+
         res.write(`data: ${JSON.stringify(chunk)}\n\n`);
       }
 
       res.write('data: [DONE]\n\n');
       res.end();
+
+      const latency = Date.now() - startTime;
+
+      // ── Resolve token counts ─────────────────────────────────────────────
+      // Prefer the usage chunk; fall back to a rough char-based estimate.
+      const tokens_in  = streamUsage?.prompt_tokens     ?? 0;
+      const tokens_out = streamUsage?.completion_tokens ?? Math.ceil(outputChars / 4);
+
+      // ── Carbon + persistence (mirrors non-streaming path) ─────────────────
+      const carbon = calculateCarbon({
+        model:      actualModel,
+        providerId: provider.id,
+        tokens_in,
+        tokens_out,
+      });
+
+      logRequest({
+        provider:            provider.id,
+        model:               actualModel,
+        tokens_in,
+        tokens_out,
+        latency_ms:          latency,
+        complexity_score:    classification.score,
+        complexity_source:   classification.source,
+        routing_tier:        routing.tier,
+        was_routed:          routing.wasRouted ? 1 : 0,
+        carbon_g:            carbon.carbon_g,
+        baseline_carbon_g:   carbon.baseline_carbon_g,
+        savings_g:           carbon.savings_g,
+      });
+
+      console.log(
+        `[EcoGate] ← ${provider.name} (stream) | Model: ${actualModel} | ` +
+        `Tokens: ${tokens_in + tokens_out} | ${latency}ms | ` +
+        `Carbon: ${carbon.carbon_g.toFixed(4)}g | Saved: ${carbon.savings_g.toFixed(4)}g (${carbon.savings_pct}%)`
+      );
+
+      broadcast('request_complete', {
+        provider:          provider.id,
+        model:             actualModel,
+        tokens_in,
+        tokens_out,
+        latency_ms:        latency,
+        complexity_score:  classification.score,
+        routing_tier:      routing.tier,
+        was_routed:        routing.wasRouted,
+        carbon_g:          carbon.carbon_g,
+        baseline_carbon_g: carbon.baseline_carbon_g,
+        savings_g:         carbon.savings_g,
+        savings_pct:       carbon.savings_pct,
+        timestamp:         new Date().toISOString(),
+        streamed:          true,
+      });
+      broadcast('stats_update', getStats());
     } else {
       const completion = await client.chat.completions.create(requestBody);
       const latency = Date.now() - startTime;
@@ -202,6 +297,25 @@ app.post('/v1/chat/completions', async (req, res) => {
         `Tokens: ${completion.usage?.total_tokens ?? '?'} | ${latency}ms | ` +
         `Carbon: ${carbon.carbon_g.toFixed(4)}g | Saved: ${carbon.savings_g.toFixed(4)}g (${carbon.savings_pct}%)`
       );
+
+      // ── Broadcast to dashboard via WebSocket ─────────────────────────────────
+      broadcast('request_complete', {
+        provider:          provider.id,
+        model:             completion.model || requestBody.model,
+        tokens_in:         completion.usage?.prompt_tokens     || 0,
+        tokens_out:        completion.usage?.completion_tokens || 0,
+        latency_ms:        latency,
+        complexity_score:  classification.score,
+        routing_tier:      routing.tier,
+        was_routed:        routing.wasRouted,
+        carbon_g:          carbon.carbon_g,
+        baseline_carbon_g: carbon.baseline_carbon_g,
+        savings_g:         carbon.savings_g,
+        savings_pct:       carbon.savings_pct,
+        timestamp:         new Date().toISOString(),
+      });
+      broadcast('stats_update', getStats());
+
       res.json(completion);
     }
   } catch (err) {
@@ -225,7 +339,11 @@ const enabledProviders = listProviders()
 // Kick off background model sync (non-blocking)
 startSync();
 
-app.listen(PORT, () => {
+// Use http.createServer so WebSocket can share the same port
+const server = http.createServer(app);
+createWsHub(server);
+
+server.listen(PORT, () => {
   console.log(`
   ███████╗ ██████╗ ██████╗  ██████╗  █████╗ ████████╗███████╗
   ██╔════╝██╔════╝██╔═══██╗██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝
@@ -236,6 +354,7 @@ app.listen(PORT, () => {
   
   🌿 EcoGate Proxy Server  v0.1.0
   ✅ Listening on:    http://localhost:${PORT}
+  🔌 WebSocket at:   ws://localhost:${PORT}/ws
   🔁 POST /v1/chat/completions  (add header: X-EcoGate-Provider: <id>)
   📋 GET  /v1/providers
   📡 GET  /health

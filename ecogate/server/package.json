@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev":   "node --watch index.js",
+    "seed":  "node seed.js",
+    "seed:clear": "node seed.js --clear"
   },
   "keywords": [
     "openai",
@@ -20,6 +22,7 @@
     "better-sqlite3": "^12.8.0",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
-    "openai": "^6.33.0"
+    "openai": "^6.33.0",
+    "ws": "^8.20.0"
   }
 }
